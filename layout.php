@@ -2,17 +2,21 @@
 require_once 'config.php';
 
 function render_layout_start(string $title, string $active = 'home'): void {
-    $menu = [
-        ['key' => 'home', 'label' => 'Home', 'href' => 'index.php', 'icon' => 'fa-house'],
-        ['key' => 'register', 'label' => 'Register', 'href' => 'register.php', 'icon' => 'fa-id-card'],
-    ];
-
-    if (is_admin()) {
-        $menu[] = ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => 'admin.php', 'icon' => 'fa-chart-line'];
-        $menu[] = ['key' => 'logout', 'label' => 'Logout', 'href' => 'logout.php', 'icon' => 'fa-right-from-bracket'];
-    } else {
-        $menu[] = ['key' => 'login', 'label' => 'Admin Login', 'href' => 'login.php', 'icon' => 'fa-user-shield'];
+    if (!is_admin()) {
+        redirect('login.php');
     }
+    $newToday = 0;
+    try {
+        $newToday = (int)db()->query("SELECT COUNT(*) AS total FROM members WHERE date(created_at) = date('now')")->fetch()['total'];
+    } catch (Throwable $e) {
+        $newToday = 0;
+    }
+    $menu = [
+        ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => 'admin.php', 'icon' => 'fa-chart-line'],
+        ['key' => 'branch_executive', 'label' => 'Branch Executive', 'href' => 'membership_database.php', 'icon' => 'fa-user-tie'],
+        ['key' => 'received_list', 'label' => 'List Received', 'href' => 'received_list.php', 'icon' => 'fa-table-list'],
+        ['key' => 'logout', 'label' => 'Logout', 'href' => 'logout.php', 'icon' => 'fa-right-from-bracket'],
+    ];
 
     ?>
 <!doctype html>
@@ -27,22 +31,27 @@ function render_layout_start(string $title, string $active = 'home'): void {
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="min-h-screen md:flex">
-    <aside class="w-full md:w-72 bg-slate-950 text-slate-100 p-6 md:sticky md:top-0 md:h-screen">
+    <aside class="w-full md:w-72 bg-white border-r p-6 md:sticky md:top-0 md:h-screen">
       <div class="flex items-center gap-3 mb-8">
-        <div class="h-11 w-11 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center">
+        <div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <i class="fa-solid fa-users"></i>
         </div>
         <div>
-          <p class="font-black text-lg leading-tight">Mavis System</p>
-          <p class="text-xs text-slate-400">Membership Portal</p>
+          <p class="font-black text-lg leading-tight text-slate-900">Mavis System</p>
+          <p class="text-xs text-slate-500">Membership Portal</p>
         </div>
       </div>
       <nav class="space-y-2">
         <?php foreach ($menu as $item): ?>
           <?php $isActive = $item['key'] === $active; ?>
-          <a href="<?=h($item['href'])?>" class="flex items-center gap-3 rounded-xl px-4 py-3 transition <?= $isActive ? 'bg-emerald-400 text-slate-950 font-bold' : 'hover:bg-white/10 text-slate-200' ?>">
+          <a href="<?=h($item['href'])?>" class="flex items-center justify-between rounded-xl px-4 py-3 transition <?= $isActive ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-slate-100 text-slate-700' ?>">
+            <span class="flex items-center gap-3">
             <i class="fa-solid <?=h($item['icon'])?> w-5"></i>
             <span><?=h($item['label'])?></span>
+            </span>
+            <?php if ($item['key'] === 'received_list' && $newToday > 0): ?>
+              <span class="min-w-6 h-6 px-2 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$newToday?></span>
+            <?php endif; ?>
           </a>
         <?php endforeach; ?>
       </nav>

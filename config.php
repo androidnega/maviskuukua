@@ -5,12 +5,12 @@ define('APP_NAME', 'Mavis Kuukua Bissue Membership System');
 define('BASE_DIR', __DIR__);
 define('STORAGE_DIR', BASE_DIR . '/storage');
 define('DB_PATH', resolve_db_path());
-define('PHOTO_DIR', BASE_DIR . '/storage/photos');
 define('PDF_DIR', resolve_pdf_dir());
+define('PHOTO_DIR', STORAGE_DIR . '/photos');
 
 if (!is_dir(STORAGE_DIR)) mkdir(STORAGE_DIR, 0775, true);
-if (!is_dir(PHOTO_DIR)) mkdir(PHOTO_DIR, 0775, true);
 if (!is_dir(PDF_DIR)) mkdir(PDF_DIR, 0775, true);
+if (!is_dir(PHOTO_DIR)) mkdir(PHOTO_DIR, 0775, true);
 
 function resolve_db_path(): string {
     $primaryPath = STORAGE_DIR . '/database.sqlite';
@@ -82,23 +82,27 @@ function init_db(PDO $pdo): void {
     )");
     $pdo->exec("CREATE TABLE IF NOT EXISTS members (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        other_names TEXT,
-        gender TEXT NOT NULL,
+        firstname TEXT NOT NULL,
+        surname TEXT NOT NULL,
+        place_of_birth TEXT NOT NULL,
         date_of_birth TEXT NOT NULL,
-        phone TEXT NOT NULL UNIQUE,
-        email TEXT,
-        community TEXT NOT NULL,
-        electoral_area TEXT,
-        voter_id TEXT NOT NULL UNIQUE,
-        ghana_card TEXT,
-        occupation TEXT,
+        branch TEXT NOT NULL,
+        phone_no TEXT NOT NULL UNIQUE,
+        year_joined TEXT NOT NULL,
+        voter_id_no TEXT NOT NULL UNIQUE,
+        ghana_card_no TEXT NOT NULL UNIQUE,
+        positions_held TEXT,
+        languages TEXT,
+        profession TEXT,
+        proposer_name TEXT NOT NULL,
+        proposer_party_id TEXT NOT NULL,
+        proposer_phone_no TEXT NOT NULL,
         membership_id TEXT NOT NULL UNIQUE,
         photo_path TEXT,
         pdf_path TEXT,
         created_at TEXT NOT NULL
     )");
+    migrate_members_schema($pdo);
     $stmt = $pdo->prepare('SELECT COUNT(*) AS total FROM admins WHERE username = ?');
     $stmt->execute(['admin']);
     if ((int)$stmt->fetch()['total'] === 0) {
@@ -119,4 +123,51 @@ function flash(string $key, ?string $value = null): ?string {
 }
 function generate_membership_id(): string {
     return 'MKB-' . date('Y') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+}
+
+function migrate_members_schema(PDO $pdo): void {
+    $columns = $pdo->query('PRAGMA table_info(members)')->fetchAll();
+    $available = [];
+    foreach ($columns as $column) {
+        $available[] = $column['name'];
+    }
+
+    $required = [
+        'firstname', 'surname', 'place_of_birth', 'date_of_birth', 'branch', 'phone_no',
+        'year_joined', 'voter_id_no', 'ghana_card_no', 'positions_held', 'languages', 'profession',
+        'proposer_name', 'proposer_party_id', 'proposer_phone_no', 'membership_id', 'pdf_path', 'created_at'
+    ];
+
+    foreach ($required as $name) {
+        if (!in_array($name, $available, true)) {
+            $pdo->exec('DROP TABLE IF EXISTS members');
+            $pdo->exec("CREATE TABLE members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firstname TEXT NOT NULL,
+                surname TEXT NOT NULL,
+                place_of_birth TEXT NOT NULL,
+                date_of_birth TEXT NOT NULL,
+                branch TEXT NOT NULL,
+                phone_no TEXT NOT NULL UNIQUE,
+                year_joined TEXT NOT NULL,
+                voter_id_no TEXT NOT NULL UNIQUE,
+                ghana_card_no TEXT NOT NULL UNIQUE,
+                positions_held TEXT,
+                languages TEXT,
+                profession TEXT,
+                proposer_name TEXT NOT NULL,
+                proposer_party_id TEXT NOT NULL,
+                proposer_phone_no TEXT NOT NULL,
+                membership_id TEXT NOT NULL UNIQUE,
+                photo_path TEXT,
+                pdf_path TEXT,
+                created_at TEXT NOT NULL
+            )");
+            break;
+        }
+    }
+
+    if (!in_array('photo_path', $available, true)) {
+        $pdo->exec('ALTER TABLE members ADD COLUMN photo_path TEXT');
+    }
 }

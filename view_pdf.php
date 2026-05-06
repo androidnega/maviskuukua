@@ -20,14 +20,19 @@ if (!$member || !$member['pdf_path']) {
 $filename = basename((string)$member['pdf_path']);
 $filePath = PDF_DIR . '/' . $filename;
 if (!is_file($filePath)) {
-    $filename = create_member_pdf($member);
-    $filePath = PDF_DIR . '/' . $filename;
-    $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
-    $update->execute([$filename, $id]);
+    try {
+        $filename = create_member_pdf($member);
+        $filePath = PDF_DIR . '/' . $filename;
+        $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
+        $update->execute([$filename, $id]);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        exit('PDF generation failed. Please retry or contact admin.');
+    }
 
     if (!is_file($filePath)) {
-        http_response_code(404);
-        exit('PDF not found.');
+        http_response_code(500);
+        exit('PDF generation failed. Please retry or contact admin.');
     }
 }
 
