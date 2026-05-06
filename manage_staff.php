@@ -288,10 +288,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'otp_ok' => $otpResult['ok'],
             'otp_error' => $otpResult['error'] ?? null,
             'via_arkesel_otp' => true,
+            'otp_delivery' => $otpResult['delivery'] ?? 'otp_api',
         ]);
 
         if ($otpResult['ok']) {
-            flash('admin_notice', 'New password saved and OTP SMS sent with login details.');
+            $del = $otpResult['delivery'] ?? 'otp_api';
+            flash(
+                'admin_notice',
+                $del === 'sms_fallback'
+                    ? 'New password saved. Login details sent by SMS (managed OTP API unavailable; standard SMS path used).'
+                    : 'New password saved and OTP SMS sent with login details.'
+            );
         } else {
             flash('admin_notice', 'Password was reset but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Set a new password again or share securely.');
         }
@@ -349,10 +356,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'otp_ok' => $otpResult['ok'],
             'otp_error' => $otpResult['error'] ?? null,
             'password_sent_via_otp_sms' => true,
+            'otp_delivery' => $otpResult['delivery'] ?? 'otp_api',
         ]);
 
         if ($otpResult['ok']) {
-            flash('admin_notice', 'Account created and OTP SMS dispatched via Arkesel.');
+            $del = $otpResult['delivery'] ?? 'otp_api';
+            flash(
+                'admin_notice',
+                $del === 'sms_fallback'
+                    ? 'Account created. Credentials sent by SMS (managed OTP API failed; standard SMS API used — same balance as your other apps).'
+                    : 'Account created and OTP SMS dispatched via Arkesel.'
+            );
         } else {
             flash('admin_notice', 'Account created, but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Share credentials securely out of band.');
         }

@@ -163,10 +163,48 @@ function arkesel_response_is_success(?array $decoded): bool {
 }
 
 /**
+ * When Arkesel's /otp/generate endpoint fails (e.g. code 1007) but your SMS API works,
+ * send the same template via the standard SMS endpoint with a locally generated OTP.
+ *
+ * @return array{ok: bool, error?: string, response?: string, raw?: string, delivery?: string}
+ */
+function arkesel_otp_try_sms_fallback(PDO $pdo, string $e164NoPlus, string $messageWithPlaceholder): array {
+    $disable = trim(get_setting($pdo, 'arkasel_otp_disable_sms_fallback')) === '1';
+    if ($disable) {
+        return ['ok' => false, 'error' => 'SMS fallback disabled in settings.'];
+    }
+
+    $length = (int)get_setting($pdo, 'arkasel_otp_length', '6');
+    $length = max(6, min(15, $length));
+    $max = 10 ** $length;
+    $otp = str_pad((string)random_int(0, $max - 1), $length, '0', STR_PAD_LEFT);
+
+    $expiry = (int)get_setting($pdo, 'arkasel_otp_expiry', '5');
+    if ($expiry < 1 || $expiry > 10) {
+        $expiry = 5;
+    }
+
+    $msg = str_replace(['%otp_code%', '%expiry%'], [$otp, (string)$expiry], $messageWithPlaceholder);
+
+    $sms = arkesel_send_sms($pdo, $e164NoPlus, $msg);
+    if ($sms['ok']) {
+        return [
+            'ok' => true,
+            'response' => $sms['response'] ?? '',
+            'raw' => $sms['response'] ?? '',
+            'delivery' => 'sms_fallback',
+        ];
+    }
+
+    return ['ok' => false, 'error' => $sms['error'] ?? 'SMS fallback failed'];
+}
+
+/**
  * Arkesel managed OTP: message MUST contain %otp_code% placeholder.
  * Retries different auth header combinations only on HTTP 401 (invalid key).
+ * If the OTP API returns an error (e.g. 1007) but your account sends SMS fine, falls back to plain SMS with the same text.
  *
- * @return array{ok: bool, error?: string, response?: string, raw?: string}
+ * @return array{ok: bool, error?: string, response?: string, raw?: string, delivery?: string}
  */
 function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithPlaceholder): array {
     $apiKey = trim(get_setting($pdo, 'arkasel_api_key'));
@@ -233,11 +271,22 @@ function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithP
 
         if ($http >= 200 && $http < 300 && is_array($decoded)) {
             if (arkesel_response_is_success($decoded)) {
-                return ['ok' => true, 'response' => $resp, 'raw' => $resp];
+                return ['ok' => true, 'response' => $resp, 'raw' => $resp, 'delivery' => 'otp_api'];
             }
 
-            // HTTP 200 but application error (1007 balance, 1002 template, etc.) — do not retry auth
-            return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $http, $resp, 'OTP'), 'raw' => $resp];
+            // HTTP 200 but managed OTP failed — try standard SMS API (same wallet many apps use)
+            $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
+            if ($fb['ok']) {
+                return $fb;
+            }
+
+            $apiErr = arkesel_api_user_message($decoded, $http, $resp, 'OTP');
+
+            return [
+                'ok' => false,
+                'error' => $apiErr . ' SMS fallback: ' . ($fb['error'] ?? 'failed'),
+                'raw' => $resp,
+            ];
         }
 
         if ($http === 401) {
@@ -246,12 +295,30 @@ function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithP
             continue;
         }
 
-        return ['ok' => false, 'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP'), 'raw' => $resp];
+        // Non-401 HTTP error — try SMS fallback once (OTP endpoint may reject while SMS works)
+        $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
+        if ($fb['ok']) {
+            return $fb;
+        }
+
+        return [
+            'ok' => false,
+            'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP')
+                . ' SMS fallback: ' . ($fb['error'] ?? ''),
+            'raw' => $resp,
+        ];
+    }
+
+    // Only HTTP 401 from every variant — OTP endpoint won't authenticate; SMS API often still works
+    $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
+    if ($fb['ok']) {
+        return $fb;
     }
 
     return [
         'ok' => false,
-        'error' => $lastAuthError !== '' ? $lastAuthError : 'OTP authentication failed after retries. Check API key.',
+        'error' => ($lastAuthError !== '' ? $lastAuthError : 'OTP authentication failed after retries.')
+            . ' SMS fallback: ' . ($fb['error'] ?? ''),
         'raw' => null,
     ];
 }

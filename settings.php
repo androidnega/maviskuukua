@@ -19,7 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Mavis test OTP. Your code: %otp_code% — If you received this, Arkesel OTP is configured correctly.';
         $result = arkesel_otp_generate($pdo, $pn, $msg);
         if ($result['ok']) {
-            flash('admin_notice', 'Test submitted successfully. Check the phone for the OTP SMS (may take a minute).');
+            $del = $result['delivery'] ?? 'otp_api';
+            flash(
+                'admin_notice',
+                $del === 'sms_fallback'
+                    ? 'Test SMS sent via standard SMS API (managed OTP endpoint failed first; message includes a generated code). Check your phone.'
+                    : 'Test submitted successfully. Check the phone for the OTP SMS (may take a minute).'
+            );
         } else {
             flash('admin_notice', 'OTP test failed: ' . ($result['error'] ?? 'unknown'));
         }
@@ -38,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $val = trim((string)($_POST[$key] ?? ''));
         set_setting($pdo, $key, $val);
     }
-    log_admin_action($pdo, 'settings_update', 'app_settings', null, ['keys' => $keys]);
+    set_setting($pdo, 'arkasel_otp_disable_sms_fallback', isset($_POST['arkasel_otp_disable_sms_fallback']) ? '1' : '');
+    log_admin_action($pdo, 'settings_update', 'app_settings', null, ['keys' => array_merge($keys, ['arkasel_otp_disable_sms_fallback'])]);
     flash('admin_notice', 'Settings saved.');
     redirect('settings.php');
 }
@@ -50,6 +57,7 @@ $values = [
     'arkasel_otp_generate_url' => get_setting($pdo, 'arkasel_otp_generate_url', 'https://sms.arkesel.com/api/otp/generate'),
     'arkasel_otp_expiry' => get_setting($pdo, 'arkasel_otp_expiry', '5'),
     'arkasel_otp_length' => get_setting($pdo, 'arkasel_otp_length', '6'),
+    'arkasel_otp_disable_sms_fallback' => get_setting($pdo, 'arkasel_otp_disable_sms_fallback'),
 ];
 ?>
 <?php render_layout_start('SMS / API Settings', 'settings'); ?>
@@ -61,7 +69,7 @@ $values = [
   <div class="mt-6 p-4 bg-amber-50 border border-amber-200 text-amber-950 text-sm space-y-2">
     <p class="font-semibold">OTP requires your <strong>Main SMS API key</strong></p>
     <p class="text-amber-900/90">Sub-keys (“multiple API keys”) often return <strong>Invalid key</strong> for OTP — paste the Main SMS key from the Arkesel dashboard.</p>
-    <p class="text-amber-900/90">If you see <strong>Insufficient balance / code 1007</strong>, your SMS <em>send credits</em> are empty: OTP charges the SMS bundle, not only your main wallet. Purchase or top up an SMS package in Arkesel, then retry the test.</p>
+    <p class="text-amber-900/90">If the <strong>managed OTP API</strong> returns errors (e.g. code 1007), this app automatically retries using the <strong>standard SMS API</strong> with the same message and a generated code — the same route most integrations use when sending SMS.</p>
   </div>
 
   <form method="post" class="mt-8 bg-white  border border-slate-200 p-6 md:p-8 space-y-5">
@@ -95,6 +103,10 @@ $values = [
         <input name="arkasel_otp_length" type="number" min="6" max="15" value="<?=h($values['arkasel_otp_length'])?>" class="mt-1 w-full border border-slate-200 p-3">
       </label>
     </div>
+    <label class="flex items-start gap-3 cursor-pointer">
+      <input type="checkbox" name="arkasel_otp_disable_sms_fallback" value="1" class="mt-1" <?= trim((string)$values['arkasel_otp_disable_sms_fallback']) === '1' ? 'checked' : '' ?>>
+      <span class="text-sm text-slate-700"><strong>Disable SMS fallback</strong> — only use Arkesel’s OTP generate endpoint (no automatic retry via plain SMS).</span>
+    </label>
     <button type="submit" class="w-full md:w-auto px-6 py-3  bg-slate-950 text-white font-bold hover:bg-slate-800">Save settings</button>
   </form>
 
