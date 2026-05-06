@@ -71,7 +71,9 @@ for ($i = 6; $i >= 0; $i--) {
       </div>
       <div class="rounded-2xl border p-4 bg-slate-50">
         <p class="text-sm text-slate-500 mb-2">Submissions movement (7 days)</p>
-        <canvas id="submissionsChart" height="220"></canvas>
+        <div class="h-64">
+          <canvas id="submissionsChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -113,6 +115,7 @@ if (chartEl) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      resizeDelay: 150,
       animation: {
         duration: 1400,
         easing: 'easeOutQuart'
