@@ -216,7 +216,8 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $addText($textBlock, $titleX, 692, 'F2', 10, $brandBlue, 'Date Submitted: ' . pdf_date(member_value($pdfMember, 'created_at')));
 
     // Photo
-    $photoW = 95;
+    // Keep display box ratio aligned with generated JPEG (120:140) to avoid stretch.
+    $photoW = 103;
     $photoH = 120;
     $photoX = $pageW - $margin - $photoW;
     $photoY = 670;
