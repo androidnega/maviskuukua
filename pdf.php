@@ -320,6 +320,37 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $commands[] = '1 1 1 rg';
     $commands[] = sprintf('0 0 %.2f %.2f re f', $pageW, $pageH);
 
+    // Watermark (behind all later graphics + text — drawn first)
+    $wmText = 'kuukuacares.com';
+    $wmAngleDeg = -36;
+    $theta = deg2rad($wmAngleDeg);
+    $wmA = cos($theta);
+    $wmB = sin($theta);
+    $wmC = -$wmB;
+    $wmD = $wmA;
+    $wmGrey = '0.85 0.85 0.85 rg';
+    foreach ([
+        [$pageW * 0.14, $pageH * 0.52],
+        [$pageW * 0.12, $pageH * 0.30],
+    ] as [$wmX, $wmY]) {
+        $commands[] = 'q';
+        $commands[] = $wmGrey;
+        $commands[] = 'BT';
+        $commands[] = '/F1 34 Tf';
+        $commands[] = sprintf(
+            '%.5f %.5f %.5f %.5f %.2f %.2f Tm',
+            $wmA,
+            $wmB,
+            $wmC,
+            $wmD,
+            $wmX,
+            $wmY
+        );
+        $commands[] = '(' . pdf_escape($wmText) . ') Tj';
+        $commands[] = 'ET';
+        $commands[] = 'Q';
+    }
+
     // Full-width deep green header band
     $hHeader = 70;
     $yHeaderBottom = $pageH - $hHeader;
