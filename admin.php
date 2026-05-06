@@ -9,7 +9,22 @@ $last7Days = $pdo->query("SELECT date(created_at) AS day, COUNT(*) AS total FROM
 $lastWeek = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE date(created_at) BETWEEN date('now', '-13 days') AND date('now', '-7 days')")->fetch()['total'];
 $currentWeek = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE date(created_at) >= date('now', '-6 days')")->fetch()['total'];
 $trendPercent = $lastWeek > 0 ? round((($currentWeek - $lastWeek) / $lastWeek) * 100, 1) : ($currentWeek > 0 ? 100 : 0);
-$recentMembers = $pdo->query("SELECT * FROM members ORDER BY id DESC LIMIT 5")->fetchAll();
+$dailyMap = [];
+foreach ($last7Days as $row) {
+    $dailyMap[$row['day']] = (int)$row['total'];
+}
+$chartLabels = [];
+$chartTotals = [];
+$chartCumulative = [];
+$runningTotal = 0;
+for ($i = 6; $i >= 0; $i--) {
+    $day = date('Y-m-d', strtotime("-$i days"));
+    $count = $dailyMap[$day] ?? 0;
+    $runningTotal += $count;
+    $chartLabels[] = date('D', strtotime($day));
+    $chartTotals[] = $count;
+    $chartCumulative[] = $runningTotal;
+}
 ?>
 <?php render_layout_start('Dashboard', 'dashboard'); ?>
 <div class="max-w-7xl mx-auto">
@@ -55,42 +70,76 @@ $recentMembers = $pdo->query("SELECT * FROM members ORDER BY id DESC LIMIT 5")->
         <p class="text-sm text-slate-500 mt-1">Current 7 days: <?=$currentWeek?> | Previous 7 days: <?=$lastWeek?></p>
       </div>
       <div class="rounded-2xl border p-4 bg-slate-50">
-        <p class="text-sm text-slate-500 mb-2">Daily submissions (last 7 days)</p>
-        <div class="space-y-2">
-          <?php foreach ($last7Days as $day): ?>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-slate-600"><?=h(date('D, d M', strtotime($day['day'])))?></span>
-              <span class="font-bold"><?=h($day['total'])?></span>
-            </div>
-          <?php endforeach; ?>
-          <?php if (!$last7Days): ?><p class="text-sm text-slate-500">No trend data yet.</p><?php endif; ?>
-        </div>
+        <p class="text-sm text-slate-500 mb-2">Submissions movement (7 days)</p>
+        <canvas id="submissionsChart" height="220"></canvas>
       </div>
     </div>
   </div>
-  <div class="bg-white rounded-3xl border mt-8 p-6">
-    <h2 class="font-bold text-xl">Recent Submissions</h2>
-    <p class="text-slate-500 mt-1">Quick manage actions from dashboard.</p>
-    <div class="mt-4 space-y-3">
-      <?php foreach ($recentMembers as $m): ?>
-        <div class="border rounded-xl p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <p class="font-bold"><?=h($m['membership_id'])?> - <?=h($m['firstname'].' '.$m['surname'])?></p>
-            <p class="text-sm text-slate-500"><?=h($m['phone_no'])?> | <?=h($m['branch'])?></p>
-          </div>
-          <div class="flex flex-wrap gap-3 text-sm">
-            <a class="text-emerald-700 font-bold" href="member.php?id=<?=$m['id']?>">Details</a>
-            <?php if(!empty($m['photo_path'])): ?><a class="text-pink-700 font-bold" target="_blank" href="<?=h($m['photo_path'])?>">Photo</a><?php endif; ?>
-            <a class="text-blue-700 font-bold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a>
-            <form method="post" action="delete_member.php" onsubmit="return confirm('Delete this member and related files?');">
-              <input type="hidden" name="id" value="<?=$m['id']?>">
-              <button type="submit" class="text-red-700 font-bold">Delete</button>
-            </form>
-          </div>
-        </div>
-      <?php endforeach; ?>
-      <?php if (!$recentMembers): ?><p class="text-slate-500">No submissions yet.</p><?php endif; ?>
-    </div>
-  </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const chartEl = document.getElementById('submissionsChart');
+if (chartEl) {
+  const labels = <?=json_encode($chartLabels)?>;
+  const totals = <?=json_encode($chartTotals)?>;
+  const cumulative = <?=json_encode($chartCumulative)?>;
+  new Chart(chartEl, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Daily submissions',
+          data: totals,
+          borderRadius: 8,
+          backgroundColor: 'rgba(16, 185, 129, 0.65)',
+          borderColor: 'rgba(5, 150, 105, 1)',
+          borderWidth: 1.5
+        },
+        {
+          type: 'line',
+          label: 'Cumulative total',
+          data: cumulative,
+          tension: 0.35,
+          fill: false,
+          borderColor: 'rgba(37, 99, 235, 1)',
+          pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+          pointRadius: 3.5,
+          borderWidth: 2.5
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 1400,
+        easing: 'easeOutQuart'
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 10,
+            color: '#334155'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b' }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(148, 163, 184, 0.2)' },
+          ticks: { color: '#64748b', precision: 0 }
+        }
+      }
+    }
+  });
+}
+</script>
 <?php render_layout_end(); ?>

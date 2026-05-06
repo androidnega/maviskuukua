@@ -16,6 +16,8 @@ if (!empty($m['photo_path']) && is_file(BASE_DIR . '/' . ltrim((string)$m['photo
         $photoUrl = $fallback;
     }
 }
+$safeMembershipId = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$m['membership_id']);
+$photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_photo.jpg';
 ?>
 <?php render_layout_start('Member Details', 'dashboard'); ?>
 <div class="max-w-6xl mx-auto">
@@ -31,10 +33,13 @@ if (!empty($m['photo_path']) && is_file(BASE_DIR . '/' . ltrim((string)$m['photo
         <h1 class="text-3xl font-black"><?=h($m['firstname'].' '.$m['surname'])?></h1>
         <p class="text-slate-500 mt-1"><?=h($m['membership_id'])?></p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <?php if($photoUrl): ?><a target="_blank" class="px-3 py-2 rounded-xl bg-pink-50 text-pink-700 font-semibold" href="<?=h($photoUrl)?>"><i class="fa-solid fa-image mr-1"></i>View Photo</a><?php endif; ?>
+          <?php if($photoUrl): ?>
+            <a target="_blank" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>"><i class="fa-solid fa-image mr-1"></i>View Photo</a>
+            <a class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>" download="<?=h($photoDownloadName)?>"><i class="fa-solid fa-download mr-1"></i>Download Photo</a>
+          <?php endif; ?>
           <?php if($m['pdf_path']): ?>
-            <a target="_blank" class="px-3 py-2 rounded-xl bg-slate-900 text-white font-semibold" href="view_pdf.php?id=<?=$id?>"><i class="fa-solid fa-eye mr-1"></i>View PDF</a>
-            <a class="px-3 py-2 rounded-xl bg-white border font-semibold" href="view_pdf.php?id=<?=$id?>&download=1"><i class="fa-solid fa-download mr-1"></i>Download PDF</a>
+            <a target="_blank" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800" href="view_pdf.php?id=<?=$id?>"><i class="fa-solid fa-eye mr-1"></i>View PDF</a>
+            <a class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="view_pdf.php?id=<?=$id?>&download=1"><i class="fa-solid fa-download mr-1"></i>Download PDF</a>
           <?php endif; ?>
         </div>
       </div>
