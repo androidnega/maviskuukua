@@ -165,17 +165,17 @@ if (is_super_admin()) {
   <p class="text-slate-500 mt-1 text-sm"><?= is_super_admin()
     ? 'Super admin: create coordinators and field officers, reset passwords, delete coordinators and field officers.'
     : 'Coordinator: create field officers and reset their passwords via OTP (cannot delete accounts).' ?></p>
-  <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
+  <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
-  <div class="mt-8 grid lg:grid-cols-2 gap-8">
-    <div class="bg-white rounded-3xl border border-slate-200 p-6">
+  <div class="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
+    <div class="bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
       <h2 class="font-bold text-lg text-slate-900">Create account</h2>
       <p class="text-xs text-slate-500 mt-1">Credentials are sent by Arkesel OTP SMS (message includes %otp_code% plus username/password).</p>
       <form method="post" class="mt-4 space-y-4">
         <input type="hidden" name="staff_action" value="create">
         <?php if (is_super_admin()): ?>
         <label class="block text-sm font-semibold text-slate-700">Role</label>
-        <select name="role" class="w-full rounded-xl border border-slate-200 p-3">
+        <select name="role" class="w-full  border border-slate-200 p-3">
           <option value="<?=h(ROLE_FIELD_OFFICER)?>">Field officer</option>
           <option value="<?=h(ROLE_COORDINATOR)?>">Coordinator</option>
         </select>
@@ -185,64 +185,110 @@ if (is_super_admin()) {
         <?php endif; ?>
         <label class="block">
           <span class="text-sm font-semibold text-slate-700">Username</span>
-          <input name="username" required class="mt-1 w-full rounded-xl border border-slate-200 p-3" autocomplete="off">
+          <input name="username" required class="mt-1 w-full  border border-slate-200 p-3" autocomplete="off">
         </label>
         <label class="block">
           <span class="text-sm font-semibold text-slate-700">Temporary password</span>
-          <input name="password" type="text" required class="mt-1 w-full rounded-xl border border-slate-200 p-3 font-mono text-sm" autocomplete="off">
+          <input name="password" type="text" required class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm" autocomplete="off">
         </label>
         <label class="block">
           <span class="text-sm font-semibold text-slate-700">Phone (OTP)</span>
-          <input name="phone" required placeholder="0241234567" class="mt-1 w-full rounded-xl border border-slate-200 p-3">
+          <input name="phone" required placeholder="0241234567" class="mt-1 w-full  border border-slate-200 p-3">
         </label>
-        <button type="submit" class="px-6 py-3 rounded-xl bg-slate-950 text-white font-bold hover:bg-slate-800">Create &amp; send OTP</button>
+        <button type="submit" class="px-6 py-3  bg-slate-950 text-white font-bold hover:bg-slate-800">Create &amp; send OTP</button>
       </form>
     </div>
 
-    <div class="bg-white rounded-3xl border border-slate-200 p-6 overflow-x-auto">
+    <div class="bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
       <h2 class="font-bold text-lg text-slate-900">Directory</h2>
-      <table class="w-full text-sm mt-4 min-w-[520px]">
-        <thead><tr class="text-left text-xs uppercase text-slate-500 border-b">
-          <th class="py-2">User</th><th class="py-2">Role</th><th class="py-2">Phone</th><th class="py-2">Created</th><th class="py-2 text-right">Actions</th>
-        </tr></thead>
-        <tbody>
-          <?php foreach ($staff as $s): ?>
-            <?php
-                $canDel = staff_target_deletable_by_actor($s);
-                $canReset = staff_target_password_resettable_by_actor($s);
-            ?>
-            <tr class="border-b border-slate-100">
-              <td class="py-2 font-semibold"><?=h((string)$s['username'])?><?php if ((int)$s['id'] === $actorId): ?> <span class="text-xs text-slate-400">(you)</span><?php endif; ?></td>
-              <td class="py-2"><?=h((string)$s['role'])?></td>
-              <td class="py-2 font-mono text-xs"><?=h((string)($s['phone'] ?? '—'))?></td>
-              <td class="py-2 text-xs text-slate-600"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></td>
-              <td class="py-2 text-right whitespace-nowrap">
-                <?php if ($canReset): ?>
-                <form method="post" class="inline">
-                  <input type="hidden" name="staff_action" value="reset_password">
-                  <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                  <button type="submit" class="text-xs font-semibold text-indigo-700 hover:underline">Reset password</button>
-                </form>
-                <?php endif; ?>
-                <?php if ($canDel): ?>
-                <?php if ($canReset): ?><span class="text-slate-300 mx-1">|</span><?php endif; ?>
-                <form method="post" class="inline" onsubmit="return confirm('Permanently delete this staff account?');">
-                  <input type="hidden" name="staff_action" value="delete">
-                  <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                  <button type="submit" class="text-xs font-semibold text-red-700 hover:underline">Delete</button>
-                </form>
-                <?php endif; ?>
-                <?php if (!$canReset && !$canDel): ?>
-                <span class="text-xs text-slate-400">—</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          <?php if (!$staff): ?>
-            <tr><td colspan="5" class="py-6 text-slate-500">No accounts.</td></tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
+
+      <div class="mt-4 md:hidden space-y-3">
+        <?php foreach ($staff as $s): ?>
+          <?php
+            $canDel = staff_target_deletable_by_actor($s);
+            $canReset = staff_target_password_resettable_by_actor($s);
+          ?>
+          <article class="border border-slate-200 bg-slate-50/50 p-4">
+            <div class="flex justify-between gap-2 items-start">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900 truncate"><?=h((string)$s['username'])?><?php if ((int)$s['id'] === $actorId): ?> <span class="text-xs text-slate-400">(you)</span><?php endif; ?></p>
+                <p class="text-xs text-slate-600 mt-0.5 uppercase tracking-wide"><?=h((string)$s['role'])?></p>
+              </div>
+            </div>
+            <dl class="mt-3 space-y-1.5 text-xs">
+              <div class="flex justify-between gap-3"><dt class="text-slate-400 shrink-0">Phone</dt><dd class="font-mono text-slate-800 text-right break-all"><?=h((string)($s['phone'] ?? '—'))?></dd></div>
+              <div class="flex justify-between gap-3"><dt class="text-slate-400 shrink-0">Created</dt><dd class="text-slate-700 text-right"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></dd></div>
+            </dl>
+            <div class="mt-4 flex flex-wrap gap-3 justify-end">
+              <?php if ($canReset): ?>
+              <form method="post" class="inline">
+                <input type="hidden" name="staff_action" value="reset_password">
+                <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                <button type="submit" class="text-xs font-semibold text-indigo-700 px-2 py-1 border border-indigo-200 bg-white">Reset password</button>
+              </form>
+              <?php endif; ?>
+              <?php if ($canDel): ?>
+              <form method="post" class="inline" onsubmit="return confirm('Permanently delete this staff account?');">
+                <input type="hidden" name="staff_action" value="delete">
+                <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                <button type="submit" class="text-xs font-semibold text-red-700 px-2 py-1 border border-red-200 bg-white">Delete</button>
+              </form>
+              <?php endif; ?>
+              <?php if (!$canReset && !$canDel): ?>
+              <span class="text-xs text-slate-400">—</span>
+              <?php endif; ?>
+            </div>
+          </article>
+        <?php endforeach; ?>
+        <?php if (!$staff): ?>
+          <p class="text-sm text-slate-500 py-4">No accounts.</p>
+        <?php endif; ?>
+      </div>
+
+      <div class="hidden md:block mt-4 overflow-x-auto -mx-1 px-1">
+        <table class="w-full text-sm min-w-[520px]">
+          <thead><tr class="text-left text-xs uppercase text-slate-500 border-b border-slate-200">
+            <th class="py-2.5 pr-2">User</th><th class="py-2.5 pr-2">Role</th><th class="py-2.5 pr-2">Phone</th><th class="py-2.5 pr-2">Created</th><th class="py-2.5 text-right">Actions</th>
+          </tr></thead>
+          <tbody>
+            <?php foreach ($staff as $s): ?>
+              <?php
+                  $canDel = staff_target_deletable_by_actor($s);
+                  $canReset = staff_target_password_resettable_by_actor($s);
+              ?>
+              <tr class="border-b border-slate-100">
+                <td class="py-2.5 pr-2 font-semibold"><?=h((string)$s['username'])?><?php if ((int)$s['id'] === $actorId): ?> <span class="text-xs text-slate-400">(you)</span><?php endif; ?></td>
+                <td class="py-2.5 pr-2"><?=h((string)$s['role'])?></td>
+                <td class="py-2.5 pr-2 font-mono text-xs"><?=h((string)($s['phone'] ?? '—'))?></td>
+                <td class="py-2.5 pr-2 text-xs text-slate-600"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></td>
+                <td class="py-2.5 text-right whitespace-nowrap">
+                  <?php if ($canReset): ?>
+                  <form method="post" class="inline">
+                    <input type="hidden" name="staff_action" value="reset_password">
+                    <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                    <button type="submit" class="text-xs font-semibold text-indigo-700 hover:underline">Reset password</button>
+                  </form>
+                  <?php endif; ?>
+                  <?php if ($canDel): ?>
+                  <?php if ($canReset): ?><span class="text-slate-300 mx-1">|</span><?php endif; ?>
+                  <form method="post" class="inline" onsubmit="return confirm('Permanently delete this staff account?');">
+                    <input type="hidden" name="staff_action" value="delete">
+                    <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                    <button type="submit" class="text-xs font-semibold text-red-700 hover:underline">Delete</button>
+                  </form>
+                  <?php endif; ?>
+                  <?php if (!$canReset && !$canDel): ?>
+                  <span class="text-xs text-slate-400">—</span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            <?php if (!$staff): ?>
+              <tr><td colspan="5" class="py-6 text-slate-500">No accounts.</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

@@ -67,7 +67,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
   <div class="min-h-screen md:flex">
     <aside class="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r p-6 md:sticky md:top-0 md:h-screen md:overflow-y-auto">
       <div class="flex items-center gap-3 mb-8">
-        <div class="h-11 w-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+        <div class="h-11 w-11  bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <i class="fa-solid fa-users"></i>
         </div>
         <div>
@@ -79,13 +79,13 @@ function render_layout_start(string $title, string $active = 'home'): void {
       <nav class="space-y-2">
         <?php foreach ($menu as $item): ?>
           <?php $isActive = $item['key'] === $active; ?>
-          <a href="<?=h($item['href'])?>" class="flex items-center justify-between rounded-xl px-4 py-3 transition <?= $isActive ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-slate-100 text-slate-700' ?>">
+          <a href="<?=h($item['href'])?>" class="flex items-center justify-between  px-4 py-3 transition <?= $isActive ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-slate-100 text-slate-700' ?>">
             <span class="flex items-center gap-3">
             <i class="fa-solid <?=h($item['icon'])?> w-5"></i>
             <span><?=h($item['label'])?></span>
             </span>
             <?php if ($item['key'] === 'received_list' && $unreadCount > 0): ?>
-              <span class="min-w-6 h-6 px-2 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$unreadCount?></span>
+              <span class="min-w-6 h-6 px-2  bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$unreadCount?></span>
             <?php endif; ?>
           </a>
         <?php endforeach; ?>

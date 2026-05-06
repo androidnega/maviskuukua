@@ -31,31 +31,31 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
 <?php render_layout_start('Member Details', 'received_list'); ?>
 <div class="max-w-6xl mx-auto">
   <a href="received_list.php" class="text-sm text-slate-600"><i class="fa-solid fa-arrow-left mr-1"></i>Back to registrations</a>
-  <div class="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 mt-4">
+  <div class="bg-white  border border-slate-200 p-6 md:p-8 mt-4">
     <?php if (!empty($m['deleted_at'])): ?>
-      <div class="mb-5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm font-semibold">
+      <div class="mb-5 px-4 py-3  bg-amber-50 border border-amber-200 text-amber-900 text-sm font-semibold">
         <i class="fa-solid fa-box-archive mr-1"></i> This record is archived (soft-deleted). Files may still be available for audit.
       </div>
     <?php endif; ?>
     <div class="flex flex-col md:flex-row md:items-center gap-5">
       <?php if($photoUrl): ?>
-        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl p-1.5 border border-slate-300 bg-white">
-          <img src="<?=h($photoUrl)?>" class="w-full h-full rounded-xl object-cover object-top bg-slate-50" alt="Member photo">
+        <div class="w-28 h-36 md:w-36 md:h-44  p-1.5 border border-slate-300 bg-white">
+          <img src="<?=h($photoUrl)?>" class="w-full h-full  object-cover object-top bg-slate-50" alt="Member photo">
         </div>
       <?php else: ?>
-        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl border border-slate-300 bg-slate-100 text-slate-500 flex items-center justify-center text-3xl"><i class="fa-solid fa-user"></i></div>
+        <div class="w-28 h-36 md:w-36 md:h-44  border border-slate-300 bg-slate-100 text-slate-500 flex items-center justify-center text-3xl"><i class="fa-solid fa-user"></i></div>
       <?php endif; ?>
       <div class="flex-1">
         <h1 class="text-3xl font-black"><?=h($m['firstname'].' '.$m['surname'])?></h1>
         <p class="text-slate-500 mt-1"><?=h($m['membership_id'])?></p>
         <div class="mt-4 flex flex-wrap gap-2">
           <?php if($photoUrl): ?>
-            <a target="_blank" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>"><i class="fa-solid fa-image mr-1"></i>View Photo</a>
-            <a class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>" download="<?=h($photoDownloadName)?>"><i class="fa-solid fa-download mr-1"></i>Download Photo</a>
+            <a target="_blank" class="px-3 py-2  border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>"><i class="fa-solid fa-image mr-1"></i>View Photo</a>
+            <a class="px-3 py-2  border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="<?=h($photoUrl)?>" download="<?=h($photoDownloadName)?>"><i class="fa-solid fa-download mr-1"></i>Download Photo</a>
           <?php endif; ?>
           <?php if($m['pdf_path']): ?>
-            <a target="_blank" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800" href="view_pdf.php?id=<?=$id?>"><i class="fa-solid fa-eye mr-1"></i>View PDF</a>
-            <a class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="view_pdf.php?id=<?=$id?>&download=1"><i class="fa-solid fa-download mr-1"></i>Download PDF</a>
+            <a target="_blank" class="px-3 py-2  bg-slate-900 text-white text-sm font-medium hover:bg-slate-800" href="view_pdf.php?id=<?=$id?>"><i class="fa-solid fa-eye mr-1"></i>View PDF</a>
+            <a class="px-3 py-2  border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50" href="view_pdf.php?id=<?=$id?>&download=1"><i class="fa-solid fa-download mr-1"></i>Download PDF</a>
           <?php endif; ?>
         </div>
       </div>
@@ -95,7 +95,7 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
             $display = $raw !== '' ? $raw : 'N/A';
         }
         ?>
-    <div class="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100"><dt class="text-slate-500 text-[11px] leading-tight"><?=h($label)?></dt><dd class="font-semibold mt-0.5 text-sm leading-snug break-words"><?=h($display)?></dd></div>
+    <div class="bg-slate-50  px-3 py-2 border border-slate-100"><dt class="text-slate-500 text-[11px] leading-tight"><?=h($label)?></dt><dd class="font-semibold mt-0.5 text-sm leading-snug break-words"><?=h($display)?></dd></div>
     <?php endforeach; ?>
     </dl>
   </div>

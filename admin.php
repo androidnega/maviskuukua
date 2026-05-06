@@ -83,55 +83,55 @@ if (is_field_officer()) {
     <div class="min-w-0 flex-1">
       <h1 class="text-3xl font-black text-slate-900"><?=h($dashTitle)?></h1>
       <p class="text-slate-500 text-sm">Membership submissions overview</p>
-      <div class="mt-3 inline-flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3 py-2 text-slate-600">
-        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+      <div class="mt-3 inline-flex items-center gap-2  border border-slate-200/90 bg-white px-3 py-2 text-slate-600">
+        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center  bg-red-50 text-red-600">
           <i class="fa-solid fa-video text-sm mavis-surveillance-icon-breathe"></i>
         </span>
         <span class="text-xs font-medium leading-tight">24/7 monitored session</span>
       </div>
     </div>
-    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full <?=h($accentBar)?> text-sm font-semibold border shrink-0">
+    <span class="inline-flex items-center gap-2 px-3 py-1.5  <?=h($accentBar)?> text-sm font-semibold border shrink-0">
       <i class="fa-solid fa-arrow-trend-up"></i>
       <?=$trendPercent >= 0 ? '+' : ''?><?=$trendPercent?>% this week
     </span>
   </div>
   <div class="grid md:grid-cols-3 gap-4 mt-6">
-    <div class="bg-white rounded-2xl border <?=h($cardBorder)?> p-5">
+    <div class="bg-white  border <?=h($cardBorder)?> p-5">
       <div class="flex items-center justify-between">
         <p class="text-slate-500 text-sm font-semibold">Total Forms</p>
-        <span class="h-9 w-9 rounded-xl <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
+        <span class="h-9 w-9  <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
           <i class="fa-solid fa-file-signature"></i>
         </span>
       </div>
       <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$total?></h2>
     </div>
-    <div class="bg-white rounded-2xl border <?=h($cardBorder)?> p-5">
+    <div class="bg-white  border <?=h($cardBorder)?> p-5">
       <div class="flex items-center justify-between">
         <p class="text-slate-500 text-sm font-semibold">New Today</p>
-        <span class="h-9 w-9 rounded-xl <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
+        <span class="h-9 w-9  <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
           <i class="fa-solid fa-calendar-day"></i>
         </span>
       </div>
       <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$today?></h2>
     </div>
-    <div class="bg-white rounded-2xl border <?=h($cardBorder)?> p-5">
+    <div class="bg-white  border <?=h($cardBorder)?> p-5">
       <div class="flex items-center justify-between">
         <p class="text-slate-500 text-sm font-semibold">This Month</p>
-        <span class="h-9 w-9 rounded-xl <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
+        <span class="h-9 w-9  <?= is_field_officer() ? 'bg-sky-50 text-sky-600' : (is_coordinator() ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600') ?> flex items-center justify-center">
           <i class="fa-solid fa-chart-column"></i>
         </span>
       </div>
       <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$thisMonth?></h2>
     </div>
   </div>
-  <div class="bg-white rounded-3xl border <?=h($cardBorder)?> mt-6 p-6">
+  <div class="bg-white  border <?=h($cardBorder)?> mt-6 p-6">
     <h2 class="font-bold text-lg text-slate-900">Quick Actions</h2>
     <div class="mt-4 flex flex-wrap gap-3">
-      <a href="received_list.php" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl <?= is_field_officer() ? 'bg-sky-600 hover:bg-sky-500' : (is_coordinator() ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500') ?> text-white font-semibold">
+      <a href="received_list.php" class="inline-flex items-center gap-2 px-4 py-2.5  <?= is_field_officer() ? 'bg-sky-600 hover:bg-sky-500' : (is_coordinator() ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500') ?> text-white font-semibold">
         <i class="fa-solid fa-table-list"></i>Registrations
       </a>
       <?php if (can_access_branch_executive_data()): ?>
-      <a href="membership_database.php" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50">
+      <a href="membership_database.php" class="inline-flex items-center gap-2 px-4 py-2.5  bg-white border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50">
         <i class="fa-solid fa-user-tie text-emerald-600"></i>Branch Executive
       </a>
       <?php endif; ?>
@@ -140,27 +140,27 @@ if (is_field_officer()) {
 
   <?php if ($visitorStats !== null): ?>
   <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+    <div class="bg-white  border border-slate-200 p-4">
       <p class="text-xs text-slate-500 font-medium">Site views (7d)</p>
       <p class="text-2xl font-bold text-slate-900 mt-1"><?= (int)$visitorStats['total_hits_period'] ?></p>
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+    <div class="bg-white  border border-slate-200 p-4">
       <p class="text-xs text-slate-500 font-medium">Unique visitor IPs (7d)</p>
       <p class="text-2xl font-bold text-slate-900 mt-1"><?= (int)$visitorStats['unique_ips_period'] ?></p>
       <p class="text-[11px] text-slate-400 mt-1">One IP counted once per period; extra hits ≈ returns</p>
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+    <div class="bg-white  border border-slate-200 p-4">
       <p class="text-xs text-slate-500 font-medium">Avg. browsing span / session</p>
       <p class="text-2xl font-bold text-slate-900 mt-1"><?=h($avgSessFormatted)?></p>
       <p class="text-[11px] text-slate-400 mt-1">Same-day sessions with 2+ page hits</p>
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+    <div class="bg-white  border border-slate-200 p-4">
       <p class="text-xs text-slate-500 font-medium">Median time to submit form</p>
       <p class="text-2xl font-bold text-slate-900 mt-1"><?=h($medianRegFormatted)?></p>
       <p class="text-[11px] text-slate-400 mt-1">Start → submit (completed)</p>
     </div>
   </div>
-  <div class="bg-white rounded-3xl border border-slate-200 mt-6 p-6">
+  <div class="bg-white  border border-slate-200 mt-6 p-6">
     <h2 class="font-bold text-lg text-slate-900">Website visitors &amp; views</h2>
     <p class="text-xs text-slate-500 mt-1">Public pages (home, register, success). Unique IPs per day vs total hits.</p>
     <div class="mt-4 h-64">
@@ -171,14 +171,14 @@ if (is_field_officer()) {
 
   <?php if ((is_coordinator() || is_super_admin()) && count($pieValues) > 0): ?>
   <div class="grid lg:grid-cols-2 gap-6 mt-6">
-    <div class="bg-white rounded-3xl border <?=h($cardBorder)?> p-6">
+    <div class="bg-white  border <?=h($cardBorder)?> p-6">
       <h2 class="font-bold text-lg text-slate-900">Submissions by branch</h2>
       <p class="text-xs text-slate-500 mt-1">Active registrations only</p>
       <div class="mt-4 h-72 flex items-center justify-center">
         <canvas id="branchPie"></canvas>
       </div>
     </div>
-    <div class="bg-white rounded-3xl border <?=h($cardBorder)?> p-6">
+    <div class="bg-white  border <?=h($cardBorder)?> p-6">
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <h2 class="font-bold text-lg text-slate-900">Submission Trends (7 days)</h2>
         <p class="text-xs text-slate-500">Current: <?=$currentWeek?> | Previous: <?=$lastWeek?></p>
@@ -189,7 +189,7 @@ if (is_field_officer()) {
     </div>
   </div>
   <?php else: ?>
-  <div class="bg-white rounded-3xl border <?=h($cardBorder)?> mt-6 p-6">
+  <div class="bg-white  border <?=h($cardBorder)?> mt-6 p-6">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <h2 class="font-bold text-lg text-slate-900">Submission Trends (7 days)</h2>
       <p class="text-xs text-slate-500">Current: <?=$currentWeek?> | Previous: <?=$lastWeek?></p>

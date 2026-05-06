@@ -22,7 +22,7 @@ if (is_admin()) {
         <h1 class="text-4xl md:text-6xl font-black leading-tight text-white">Mavis Kuukua Bissue Membership Registration</h1>
         <p class="mt-6 text-slate-300 max-w-lg leading-8">Hon. Mavis Kuukua Bissue is the Member of Parliament for Ahanta West and the first female MP for the constituency. This portal collects membership registration details securely for administrative records.</p>
         <div class="mt-8 max-w-md">
-          <a href="register.php" class="flex items-center justify-between px-5 py-4 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-black border border-emerald-500">
+          <a href="register.php" class="flex items-center justify-between px-5 py-4  bg-emerald-600 hover:bg-emerald-500 text-white font-black border border-emerald-500">
             <span>Register</span>
             <i class="fa-solid fa-arrow-right"></i>
           </a>
@@ -30,8 +30,8 @@ if (is_admin()) {
         </div>
       </section>
       <section class="relative">
-        <div class="rounded-3xl border border-emerald-600/40 bg-slate-900/40 p-4 flex justify-center">
-          <img src="Screenshot 2026-05-06 at 3.33.08 AM.png" alt="Mavis campaign" class="h-[520px] w-auto max-w-full object-contain object-center rounded-2xl border border-white/10 bg-slate-950">
+        <div class=" border border-emerald-600/40 bg-slate-900/40 p-4 flex justify-center">
+          <img src="Screenshot 2026-05-06 at 3.33.08 AM.png" alt="Mavis campaign" class="h-[520px] w-auto max-w-full object-contain object-center  border border-white/10 bg-slate-950">
         </div>
       </section>
     </div>

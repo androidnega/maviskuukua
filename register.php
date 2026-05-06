@@ -281,85 +281,85 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
 <body class="bg-slate-100 text-slate-900">
 <main class="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
   <a href="index.php" class="text-sm text-slate-600">← Home</a>
-  <div class="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 md:p-8 mt-4">
+  <div class="bg-white  border border-slate-200 p-4 sm:p-6 md:p-8 mt-4">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mt-1">
       <h1 class="text-2xl sm:text-3xl font-black">Membership Registration</h1>
-      <button type="button" id="clearFormBtn" class="shrink-0 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">Clear all fields</button>
+      <button type="button" id="clearFormBtn" class="shrink-0 px-4 py-2.5  border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">Clear all fields</button>
     </div>
     <p class="text-slate-500 mt-2">Complete the form below. Fields marked required must be filled.</p>
-    <?php if(isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-red-50 text-red-700 border border-red-200"><?=h($errors['general'])?></div><?php endif; ?>
-    <?php if($errors && !isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-200">Please correct the highlighted fields before continuing.</div><?php endif; ?>
+    <?php if(isset($errors['general'])): ?><div class="mt-4 p-4  bg-red-50 text-red-700 border border-red-200"><?=h($errors['general'])?></div><?php endif; ?>
+    <?php if($errors && !isset($errors['general'])): ?><div class="mt-4 p-4  bg-amber-50 text-amber-800 border border-amber-200">Please correct the highlighted fields before continuing.</div><?php endif; ?>
     <form method="post" enctype="multipart/form-data" class="mt-6 sm:mt-8 space-y-6 sm:space-y-8" id="registrationForm" novalidate>
       <div class="flex items-center gap-2 text-sm flex-wrap">
-        <span id="stepBadge1" class="px-3 py-1 rounded-full bg-slate-950 text-white">Step 1</span>
-        <span id="stepBadge2" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 2</span>
-        <span id="stepBadge3" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 3</span>
+        <span id="stepBadge1" class="px-3 py-1  bg-slate-950 text-white">Step 1</span>
+        <span id="stepBadge2" class="px-3 py-1  bg-slate-200 text-slate-600">Step 2</span>
+        <span id="stepBadge3" class="px-3 py-1  bg-slate-200 text-slate-600">Step 3</span>
       </div>
       <section id="step1"><h2 class="font-bold text-lg mb-4">Personal Details</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label>Firstname *<input name="firstname" value="<?=val('firstname',$old)?>" placeholder="Enter first name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('firstname',$errors)?></label>
-        <label>Surname *<input name="surname" value="<?=val('surname',$old)?>" placeholder="Enter surname" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('surname',$errors)?></label>
-        <label>Place of birth *<input name="place_of_birth" value="<?=val('place_of_birth',$old)?>" placeholder="e.g. Takoradi" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('place_of_birth',$errors)?></label>
-        <label>Date of birth *<input type="date" name="date_of_birth" value="<?=val('date_of_birth',$old)?>" class="w-full mt-1 rounded-xl border p-3" required><?=err('date_of_birth',$errors)?></label>
-        <label>Branch *<input name="branch" value="<?=val('branch',$old)?>" placeholder="Enter branch name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('branch',$errors)?></label>
-        <label>Phone no *<input name="phone_no" value="<?=val('phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('phone_no',$errors)?></label>
+        <label>Firstname *<input name="firstname" value="<?=val('firstname',$old)?>" placeholder="Enter first name" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('firstname',$errors)?></label>
+        <label>Surname *<input name="surname" value="<?=val('surname',$old)?>" placeholder="Enter surname" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('surname',$errors)?></label>
+        <label>Place of birth *<input name="place_of_birth" value="<?=val('place_of_birth',$old)?>" placeholder="e.g. Takoradi" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('place_of_birth',$errors)?></label>
+        <label>Date of birth *<input type="date" name="date_of_birth" value="<?=val('date_of_birth',$old)?>" class="w-full mt-1  border p-3" required><?=err('date_of_birth',$errors)?></label>
+        <label>Branch *<input name="branch" value="<?=val('branch',$old)?>" placeholder="Enter branch name" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('branch',$errors)?></label>
+        <label>Phone no *<input name="phone_no" value="<?=val('phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1  border p-3" required><?=err('phone_no',$errors)?></label>
       </div>
       <div class="mt-6">
-        <button type="button" id="nextBtn1" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
+        <button type="button" id="nextBtn1" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white  font-bold hover:bg-slate-800">Next</button>
       </div>
       </section>
       <section id="step2" class="hidden"><h2 class="font-bold text-lg mb-4">Membership Details</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label>Year joined *<input name="year_joined" value="<?=val('year_joined',$old)?>" placeholder="2026" class="w-full mt-1 rounded-xl border p-3" required><?=err('year_joined',$errors)?></label>
-        <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="BC12345678" pattern="[A-Za-z0-9]{8,15}" title="Use 8-15 letters/numbers only." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
-        <label>Ghana card no *<input id="ghanaCardInput" name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="GHA-123456789-1" pattern="GHA-[0-9]{9}-[0-9]" title="Use Ghana Card format: GHA-123456789-1" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
-        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" minlength="10" pattern="[A-Za-z0-9]{10,}" title="Use at least 10 letters/numbers." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
-        <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('positions_held',$errors)?></label>
+        <label>Year joined *<input name="year_joined" value="<?=val('year_joined',$old)?>" placeholder="2026" class="w-full mt-1  border p-3" required><?=err('year_joined',$errors)?></label>
+        <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="BC12345678" pattern="[A-Za-z0-9]{8,15}" title="Use 8-15 letters/numbers only." class="w-full mt-1  border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
+        <label>Ghana card no *<input id="ghanaCardInput" name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="GHA-123456789-1" pattern="GHA-[0-9]{9}-[0-9]" title="Use Ghana Card format: GHA-123456789-1" class="w-full mt-1  border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
+        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" minlength="10" pattern="[A-Za-z0-9]{10,}" title="Use at least 10 letters/numbers." class="w-full mt-1  border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
+        <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('positions_held',$errors)?></label>
         <div class="sm:col-span-2">
           <p class="font-medium">Languages *</p>
           <?=err('languages',$errors)?>
           <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
             <?php foreach($languageOptions as $language): ?>
-              <label class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+              <label class="flex items-center gap-2  border px-3 py-2 text-sm">
                 <input type="checkbox" name="languages[]" value="<?=h($language)?>" <?=has_selected_language($old, $language) ? 'checked' : ''?>>
                 <span><?=$language?></span>
               </label>
             <?php endforeach; ?>
           </div>
         </div>
-        <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('profession',$errors)?></label>
+        <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="js-uppercase w-full mt-1  border p-3 uppercase" required><?=err('profession',$errors)?></label>
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        <button type="button" id="backBtn2" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
-        <button type="button" id="nextBtn2" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
+        <button type="button" id="backBtn2" class="w-full sm:w-auto px-8 py-3 bg-white border  font-bold">Back</button>
+        <button type="button" id="nextBtn2" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white  font-bold hover:bg-slate-800">Next</button>
       </div>
       </section>
       <section id="step3" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information <span class="font-normal text-slate-500 text-base">(optional)</span></h2><p class="text-sm text-slate-500 mb-4">Leave blank if you do not have proposer details.</p><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <label>Proposer's name<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase"><?=err('proposer_name',$errors)?></label>
-        <label>Proposer's party ID<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase"><?=err('proposer_party_id',$errors)?></label>
-        <label>Proposer's phone no<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3"><?=err('proposer_phone_no',$errors)?></label>
+        <label>Proposer's name<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="js-uppercase w-full mt-1  border p-3 uppercase"><?=err('proposer_name',$errors)?></label>
+        <label>Proposer's party ID<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1  border p-3 uppercase"><?=err('proposer_party_id',$errors)?></label>
+        <label>Proposer's phone no<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1  border p-3"><?=err('proposer_phone_no',$errors)?></label>
       </div>
       <div class="mt-6 space-y-4">
         <div>
           <p class="font-medium">Photo *</p>
           <p class="text-xs text-slate-500 mt-1">Upload from your device, or tap <strong>Take selfie</strong> if you cannot pick a file (camera permission is required for the selfie option).</p>
-          <label class="block mt-2">Choose file<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white"><?=err('photo',$errors)?></label>
-          <button type="button" id="selfieStartBtn" class="mt-3 w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-slate-950 font-bold text-slate-950 hover:bg-slate-50">Take selfie</button>
+          <label class="block mt-2">Choose file<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1  border p-3 bg-white"><?=err('photo',$errors)?></label>
+          <button type="button" id="selfieStartBtn" class="mt-3 w-full sm:w-auto px-6 py-3  border-2 border-slate-950 font-bold text-slate-950 hover:bg-slate-50">Take selfie</button>
           <p id="selfieStatus" class="text-sm mt-2 text-red-600 min-h-[1.25rem]" role="status"></p>
         </div>
-        <div id="selfiePanel" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-          <video id="selfieVideo" class="w-full max-w-md mx-auto rounded-xl bg-black aspect-video object-cover" playsinline muted autoplay></video>
+        <div id="selfiePanel" class="hidden  border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <video id="selfieVideo" class="w-full max-w-md mx-auto  bg-black aspect-video object-cover" playsinline muted autoplay></video>
           <canvas id="selfieCanvas" class="hidden"></canvas>
           <p id="selfieError" class="text-red-600 text-sm hidden"></p>
           <div class="flex flex-col sm:flex-row gap-2 flex-wrap">
-            <button type="button" id="selfieCaptureBtn" class="px-6 py-2 rounded-xl bg-slate-950 text-white font-bold disabled:opacity-50" disabled>Capture photo</button>
-            <button type="button" id="selfieCancelBtn" class="px-6 py-2 rounded-xl border font-bold">Close camera</button>
+            <button type="button" id="selfieCaptureBtn" class="px-6 py-2  bg-slate-950 text-white font-bold disabled:opacity-50" disabled>Capture photo</button>
+            <button type="button" id="selfieCancelBtn" class="px-6 py-2  border font-bold">Close camera</button>
           </div>
         </div>
         <p class="text-xs text-slate-500">Accepted formats: JPG, PNG, WEBP. Upload max: 500KB. Stored image optimized to 150KB max.</p>
-        <img id="photoPreview" class="w-36 h-36 rounded-xl object-cover border hidden" alt="Preview">
+        <img id="photoPreview" class="w-36 h-36  object-cover border hidden" alt="Preview">
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        <button type="button" id="backBtn3" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
-        <button type="submit" id="submitRegistrationBtn" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Submit Registration</button>
+        <button type="button" id="backBtn3" class="w-full sm:w-auto px-8 py-3 bg-white border  font-bold">Back</button>
+        <button type="submit" id="submitRegistrationBtn" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white  font-bold hover:bg-slate-800">Submit Registration</button>
       </div>
       </section>
     </form>
@@ -426,9 +426,9 @@ function setStep(step) {
   step1.classList.toggle('hidden', step !== 1);
   step2.classList.toggle('hidden', step !== 2);
   step3.classList.toggle('hidden', step !== 3);
-  stepBadge1.className = step === 1 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
-  stepBadge2.className = step === 2 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
-  stepBadge3.className = step === 3 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
+  stepBadge1.className = step === 1 ? 'px-3 py-1  bg-slate-950 text-white' : 'px-3 py-1  bg-slate-200 text-slate-600';
+  stepBadge2.className = step === 2 ? 'px-3 py-1  bg-slate-950 text-white' : 'px-3 py-1  bg-slate-200 text-slate-600';
+  stepBadge3.className = step === 3 ? 'px-3 py-1  bg-slate-950 text-white' : 'px-3 py-1  bg-slate-200 text-slate-600';
   localStorage.setItem(STEP_KEY, String(step));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

@@ -58,7 +58,7 @@ $snapCount = (int)$pdo->query('SELECT COUNT(*) AS c FROM member_audit_snapshots'
 $tabLink = function (string $t) use ($tab): string {
     $active = $t === $tab;
 
-    return 'inline-flex items-center gap-2 px-4 py-2.5 rounded-t-lg border border-b-0 text-sm font-semibold transition-colors '
+    return 'inline-flex items-center gap-2 px-4 py-2.5  border border-b-0 text-sm font-semibold transition-colors '
         . ($active
             ? 'bg-white border-slate-200 text-slate-900 relative top-[1px]'
             : 'border-transparent text-slate-500 hover:text-slate-700');
@@ -69,7 +69,7 @@ $tabLink = function (string $t) use ($tab): string {
   <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">Audit &amp; logs</h1>
     <p class="text-slate-500 mt-1 text-sm">Exports exclude legacy chat actions.</p>
-    <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100"><?=h($notice)?></div><?php endif; ?>
+    <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-100"><?=h($notice)?></div><?php endif; ?>
     <div class="mt-4 flex flex-wrap gap-2 items-center justify-between">
       <div class="flex flex-wrap gap-1 border-b border-slate-200 w-full md:w-auto">
         <a href="audit.php?tab=activity" class="<?=$tabLink('activity')?>">Recent activity</a>
@@ -77,15 +77,15 @@ $tabLink = function (string $t) use ($tab): string {
         <a href="audit.php?tab=archive" class="<?=$tabLink('archive')?>">Archived members</a>
       </div>
       <div class="flex flex-wrap gap-2 mt-2 md:mt-0">
-        <a class="px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold" href="audit.php?download=activity&amp;fmt=csv">CSV</a>
-        <a class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700" href="audit.php?download=activity&amp;fmt=json">JSON</a>
+        <a class="px-3 py-2  bg-slate-900 text-white text-xs font-semibold" href="audit.php?download=activity&amp;fmt=csv">CSV</a>
+        <a class="px-3 py-2  border border-slate-200 bg-white text-xs font-semibold text-slate-700" href="audit.php?download=activity&amp;fmt=json">JSON</a>
       </div>
     </div>
     <p class="text-xs text-slate-400 mt-3">Snapshots stored: <?=$snapCount?> · Registrations list hides archived rows by default.</p>
   </div>
 
   <div class="<?= $tab === 'activity' ? '' : 'hidden' ?>">
-    <section class="bg-white rounded-2xl border border-slate-200 p-5 overflow-x-auto">
+    <section class="bg-white  border border-slate-200 p-5 overflow-x-auto">
       <table class="w-full text-sm min-w-[720px]">
         <thead><tr class="text-left text-xs uppercase text-slate-500 border-b border-slate-100">
           <th class="py-2 pr-2">When</th><th class="py-2 pr-2">Actor</th><th class="py-2 pr-2">Action</th><th class="py-2 pr-2">Entity</th><th class="py-2">Details</th>
@@ -109,7 +109,7 @@ $tabLink = function (string $t) use ($tab): string {
   </div>
 
   <div class="<?= $tab === 'tokens' ? '' : 'hidden' ?>">
-    <section class="bg-white rounded-2xl border border-slate-200 p-5 overflow-x-auto">
+    <section class="bg-white  border border-slate-200 p-5 overflow-x-auto">
       <p class="text-xs text-slate-500 mb-4">Per-applicant funnel when available (IP, timings, PDF view/download on public pages).</p>
       <table class="w-full text-sm min-w-[960px]">
         <thead><tr class="text-left text-xs uppercase text-slate-500 border-b border-slate-100">
@@ -141,7 +141,7 @@ $tabLink = function (string $t) use ($tab): string {
   </div>
 
   <div class="<?= $tab === 'archive' ? '' : 'hidden' ?>">
-    <section class="bg-white rounded-2xl border border-slate-200 p-5 overflow-x-auto">
+    <section class="bg-white  border border-slate-200 p-5 overflow-x-auto">
       <table class="w-full text-sm">
         <thead><tr class="text-left text-xs uppercase text-slate-500 border-b border-slate-100">
           <th class="py-2">ID</th><th class="py-2">Name</th><th class="py-2">Membership</th><th class="py-2">Deleted</th>

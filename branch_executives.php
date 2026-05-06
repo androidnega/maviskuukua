@@ -14,24 +14,24 @@ $executives = $stmt->fetchAll();
   <p class="text-slate-500 mt-1">Executive member directory with photo and quick profile access.</p>
 
   <div class="mt-4 flex flex-wrap gap-2">
-    <a href="export_executives.php?format=csv" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-csv mr-1 text-emerald-600"></i>Executive CSV</a>
-    <a href="export_executives.php?format=excel" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i>Executive Excel</a>
-    <a href="export_executives.php?format=pdf" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-pdf mr-1 text-emerald-600"></i>Executive PDF</a>
+    <a href="export_executives.php?format=csv" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-csv mr-1 text-emerald-600"></i>Executive CSV</a>
+    <a href="export_executives.php?format=excel" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i>Executive Excel</a>
+    <a href="export_executives.php?format=pdf" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-pdf mr-1 text-emerald-600"></i>Executive PDF</a>
     <?php if (can_export_bulk_members()): ?>
-    <a href="export_members_bulk.php?format=csv" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members CSV</a>
-    <a href="export_members_bulk.php?format=excel" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members Excel</a>
-    <a href="export_members_bulk.php?format=pdf" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members PDF</a>
+    <a href="export_members_bulk.php?format=csv" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members CSV</a>
+    <a href="export_members_bulk.php?format=excel" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members Excel</a>
+    <a href="export_members_bulk.php?format=pdf" class="px-3 py-2  border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members PDF</a>
     <?php endif; ?>
   </div>
 
   <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <?php foreach ($executives as $m): ?>
-      <div class="bg-white border rounded-2xl p-4">
+      <div class="bg-white border  p-4">
         <div class="flex items-center gap-3">
           <?php if (!empty($m['photo_path'])): ?>
-            <img src="<?=h($m['photo_path'])?>" alt="Executive photo" class="w-14 h-14 rounded-xl object-cover border">
+            <img src="<?=h($m['photo_path'])?>" alt="Executive photo" class="w-14 h-14  object-cover border">
           <?php else: ?>
-            <div class="w-14 h-14 rounded-xl bg-slate-100 border flex items-center justify-center text-slate-500"><i class="fa-solid fa-user"></i></div>
+            <div class="w-14 h-14  bg-slate-100 border flex items-center justify-center text-slate-500"><i class="fa-solid fa-user"></i></div>
           <?php endif; ?>
           <div>
             <p class="font-bold"><?=h($m['firstname'] . ' ' . $m['surname'])?></p>
@@ -47,7 +47,7 @@ $executives = $stmt->fetchAll();
       </div>
     <?php endforeach; ?>
     <?php if (!$executives): ?>
-      <div class="bg-white border rounded-2xl p-6 text-slate-500 sm:col-span-2 lg:col-span-3">
+      <div class="bg-white border  p-6 text-slate-500 sm:col-span-2 lg:col-span-3">
         No branch executive records found yet. Members with positions containing "executive" will show here.
       </div>
     <?php endif; ?>
