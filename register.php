@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($errors['proposer_phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $old['proposer_phone_no'])) $errors['proposer_phone_no'] = 'Enter a valid proposer phone number.';
     if (!isset($errors['year_joined']) && !preg_match('/^\d{4}$/', $old['year_joined'])) $errors['year_joined'] = 'Year joined must be a 4-digit year.';
     if (!isset($errors['voter_id_no']) && !preg_match('/^[A-Z0-9]{8,15}$/i', $old['voter_id_no'])) $errors['voter_id_no'] = 'Voter ID format should be letters/numbers only (8-15 chars).';
+    if (!isset($errors['membership_id']) && !preg_match('/^[A-Z0-9]{10}$/i', $old['membership_id'])) $errors['membership_id'] = 'Membership ID must be exactly 10 letters/numbers.';
     if (!isset($errors['ghana_card_no'])) {
         $normalizedGhanaCard = normalize_ghana_card($old['ghana_card_no']);
         if ($normalizedGhanaCard === null) {
@@ -176,7 +177,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <label>Year joined *<input name="year_joined" value="<?=val('year_joined',$old)?>" placeholder="2026" class="w-full mt-1 rounded-xl border p-3" required><?=err('year_joined',$errors)?></label>
         <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="BC12345678" pattern="[A-Za-z0-9]{8,15}" title="Use 8-15 letters/numbers only." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
         <label>Ghana card no *<input id="ghanaCardInput" name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="GHA-123456789-1" pattern="GHA-[0-9]{9}-[0-9]" title="Use Ghana Card format: GHA-123456789-1" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
-        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
+        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" minlength="10" maxlength="10" pattern="[A-Za-z0-9]{10}" title="Use exactly 10 letters/numbers." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
         <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="w-full mt-1 rounded-xl border p-3" required><?=err('positions_held',$errors)?></label>
         <label>Languages *<input name="languages" value="<?=val('languages',$old)?>" placeholder="e.g. English, Fante" class="w-full mt-1 rounded-xl border p-3" required><?=err('languages',$errors)?></label>
         <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="w-full mt-1 rounded-xl border p-3" required><?=err('profession',$errors)?></label>
