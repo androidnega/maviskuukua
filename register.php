@@ -252,7 +252,10 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
 <main class="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
   <a href="index.php" class="text-sm text-slate-600">← Home</a>
   <div class="bg-white rounded-3xl shadow-sm border p-4 sm:p-6 md:p-8 mt-4">
-    <h1 class="text-2xl sm:text-3xl font-black">Membership Registration</h1>
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mt-1">
+      <h1 class="text-2xl sm:text-3xl font-black">Membership Registration</h1>
+      <button type="button" id="clearFormBtn" class="shrink-0 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">Clear all fields</button>
+    </div>
     <p class="text-slate-500 mt-2">Complete the form below. Fields marked required must be filled.</p>
     <?php if(isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-red-50 text-red-700 border border-red-200"><?=h($errors['general'])?></div><?php endif; ?>
     <?php if($errors && !isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-200">Please correct the highlighted fields before continuing.</div><?php endif; ?>
@@ -359,6 +362,13 @@ const uppercaseFields = document.querySelectorAll('.js-uppercase');
 const registrationForm = document.getElementById('registrationForm');
 const DRAFT_KEY = 'mavis_registration_draft_v1';
 const STEP_KEY = 'mavis_registration_step_v1';
+
+function clearRegistrationDraftStorage() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(STEP_KEY);
+  } catch (err) {}
+}
 
 function formatGhanaCard(value) {
   const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -630,6 +640,44 @@ if (selfieCancelBtn) {
   });
 }
 
+function clearAllRegistrationFields() {
+  stopSelfieStream();
+  if (selfiePanel) selfiePanel.classList.add('hidden');
+  hideSelfieError();
+  if (selfieStatus) selfieStatus.textContent = '';
+  if (selfieCaptureBtn) selfieCaptureBtn.disabled = true;
+  showPhotoPreview(null);
+  if (photoInput) {
+    photoInput.value = '';
+    photoInput.setCustomValidity('');
+  }
+  registrationForm.querySelectorAll('input[name]').forEach((field) => {
+    if (field.type === 'file') {
+      return;
+    }
+    if (field.type === 'checkbox') {
+      field.checked = false;
+      return;
+    }
+    field.value = '';
+  });
+  if (ghanaCardInput) {
+    ghanaCardInput.value = '';
+  }
+  clearRegistrationDraftStorage();
+  setStep(1);
+}
+
+const clearFormBtn = document.getElementById('clearFormBtn');
+if (clearFormBtn) {
+  clearFormBtn.addEventListener('click', () => {
+    if (!window.confirm('Clear every field and any saved draft? This cannot be undone.')) {
+      return;
+    }
+    clearAllRegistrationFields();
+  });
+}
+
 photoInput.addEventListener('change', (event) => {
   showPhotoPreview(event.target.files[0]);
 });
@@ -642,6 +690,7 @@ registrationForm.addEventListener('submit', (e) => {
     return;
   }
   photoInput.setCustomValidity('');
+  clearRegistrationDraftStorage();
 });
 </script>
 </body></html>
