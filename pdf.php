@@ -48,6 +48,53 @@ function save_member_pdf_payload(int $memberId, array $payload): void {
     @file_put_contents(pdf_overrides_path($memberId), json_encode($safe, JSON_UNESCAPED_UNICODE));
 }
 
+/**
+ * Read width/height from JPEG binary (SOF0/SOF1/SOF2). Required: PDF /Width and /Height must match DCT stream.
+ *
+ * @return array{0:int,1:int}|null
+ */
+function jpeg_binary_dimensions(string $jpeg): ?array {
+    $len = strlen($jpeg);
+    if ($len < 10 || $jpeg[0] !== "\xFF" || $jpeg[1] !== "\xD8") {
+        return null;
+    }
+    $i = 2;
+    while ($i < $len - 1) {
+        if ($jpeg[$i] !== "\xFF") {
+            $i++;
+            continue;
+        }
+        $marker = ord($jpeg[$i + 1]);
+        $i += 2;
+        if ($marker === 0xD8 || $marker === 0xD9) {
+            continue;
+        }
+        if ($marker === 0xDA) {
+            break;
+        }
+        if ($i + 2 > $len) {
+            return null;
+        }
+        $segLen = (ord($jpeg[$i]) << 8) | ord($jpeg[$i + 1]);
+        if ($segLen < 2 || $i + $segLen > $len) {
+            return null;
+        }
+        if ($marker === 0xC0 || $marker === 0xC1 || $marker === 0xC2) {
+            if ($segLen < 9) {
+                return null;
+            }
+            $h = (ord($jpeg[$i + 3]) << 8) | ord($jpeg[$i + 4]);
+            $w = (ord($jpeg[$i + 5]) << 8) | ord($jpeg[$i + 6]);
+            if ($w > 0 && $h > 0) {
+                return [$w, $h];
+            }
+            return null;
+        }
+        $i += $segLen;
+    }
+    return null;
+}
+
 function load_member_pdf_payload(int $memberId): array {
     $path = pdf_overrides_path($memberId);
     if (!is_file($path)) {
@@ -156,6 +203,20 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $textBlock = [];
     $photoBinary = create_photo_jpeg_binary($member);
     $hasPhoto = $photoBinary !== null;
+    $jpegW = 120;
+    $jpegH = 140;
+    if ($hasPhoto) {
+        $dims = jpeg_binary_dimensions($photoBinary);
+        if ($dims !== null) {
+            [$jpegW, $jpegH] = $dims;
+        } elseif (function_exists('getimagesizefromstring')) {
+            $info = @getimagesizefromstring($photoBinary);
+            if (is_array($info) && ($info[0] ?? 0) > 0 && ($info[1] ?? 0) > 0) {
+                $jpegW = (int)$info[0];
+                $jpegH = (int)$info[1];
+            }
+        }
+    }
 
     $addText = static function(array &$tb, float $x, float $y, string $font, int $size, string $color, string $text): void {
         $tb[] = "$color rg";
@@ -343,7 +404,9 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $objects[] = "5 0 obj << /Length " . strlen($content) . " >> stream\n$content\nendstream endobj\n";
     $objects[] = "6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj\n";
     if ($hasPhoto) {
-        $objects[] = "7 0 obj << /Type /XObject /Subtype /Image /Width 120 /Height 140 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($photoBinary) . " >> stream\n" . $photoBinary . "\nendstream endobj\n";
+        $imgDict = "7 0 obj << /Type /XObject /Subtype /Image /Width {$jpegW} /Height {$jpegH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " . strlen($photoBinary) . " >> stream\n";
+        // JPEG bytes must be immediately followed by endstream (no extra byte); /Length === strlen($photoBinary).
+        $objects[] = $imgDict . $photoBinary . "endstream endobj\n";
     }
 
     $pdf = "%PDF-1.4\n";
