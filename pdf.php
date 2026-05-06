@@ -348,11 +348,9 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $commands[] = '1 1 1 rg';
     $commands[] = sprintf('0 0 %.2f %.2f re f', $pageW, $pageH);
 
-    // Header — photo slot from page geometry (width fraction × portrait factor tied to page aspect).
+    // Header — photo slot uses same 35:45 (W:H) aspect as passport-processed images so the raster fills the frame without horizontal or vertical gutter.
     $photoFrameW = $contentW * 0.24;
-    $pageAspect = $pageH / max($pageW, 1.0);
-    $slotPortrait = min(max(1.06, $pageAspect * 0.42), 1.38);
-    $photoFrameH = $photoFrameW * $slotPortrait;
+    $photoFrameH = $photoFrameW * (PASSPORT_ASPECT_H / PASSPORT_ASPECT_W);
     $photoX = $pageW - $margin - $photoFrameW;
     $photoTopY = $pageH - $margin - 12;
     $photoY = $photoTopY - $photoFrameH;
