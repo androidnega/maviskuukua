@@ -196,6 +196,13 @@ function migrate_system_extensions(PDO $pdo): void {
         created_at TEXT NOT NULL
     )');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS staff_delete_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        target_admin_id INTEGER NOT NULL UNIQUE,
+        requested_by_admin_id INTEGER NOT NULL,
+        requested_at TEXT NOT NULL
+    )');
+
     $memCols = [];
     foreach ($pdo->query('PRAGMA table_info(members)')->fetchAll() as $col) {
         $memCols[] = $col['name'];
@@ -207,18 +214,6 @@ function migrate_system_extensions(PDO $pdo): void {
         $pdo->exec('ALTER TABLE members ADD COLUMN deleted_by_admin_id INTEGER');
     }
 
-    $seedUsers = [
-        ['coordinator', ROLE_COORDINATOR, 'Coordinator2026!Setup'],
-        ['field_officer', ROLE_FIELD_OFFICER, 'FieldOfficer2026!Setup'],
-    ];
-    foreach ($seedUsers as [$uname, $role, $plain]) {
-        $check = $pdo->prepare('SELECT id FROM admins WHERE username = ?');
-        $check->execute([$uname]);
-        if (!$check->fetch()) {
-            $pdo->prepare('INSERT INTO admins (username, password_hash, role, created_at, created_by_admin_id) VALUES (?,?,?,?,?)')
-                ->execute([$uname, password_hash($plain, PASSWORD_DEFAULT), $role, date('c'), null]);
-        }
-    }
 }
 
 function h(?string $value): string { return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8'); }

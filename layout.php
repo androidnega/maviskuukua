@@ -19,6 +19,15 @@ function render_layout_start(string $title, string $active = 'home'): void {
         $unreadCount = 0;
     }
 
+    $staffRemovalPending = 0;
+    try {
+        if (can_manage_staff_accounts() && is_coordinator()) {
+            $staffRemovalPending = staff_pending_removal_count_for_coordinator(db(), (int)($_SESSION['admin_id'] ?? 0));
+        }
+    } catch (Throwable $e) {
+        $staffRemovalPending = 0;
+    }
+
     $menu = [];
     $menu[] = ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => 'admin.php', 'icon' => 'fa-chart-line'];
     if (can_access_branch_executive_data()) {
@@ -73,7 +82,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
         <div>
           <p class="font-black text-lg leading-tight text-slate-900">Mavis System</p>
           <p class="text-xs text-slate-500">Membership Portal</p>
-          <p class="text-[11px] text-slate-400 mt-1"><?=h($who)?> · <?=h($_SESSION['admin_username'] ?? '')?></p>
+          <p class="text-[11px] text-slate-400 mt-1"><?=h($who)?> · <?=h($_SESSION['admin_username'] ?? '')?> · ID <?= (int)($_SESSION['admin_id'] ?? 0) ?></p>
         </div>
       </div>
       <nav class="space-y-2">
@@ -86,6 +95,9 @@ function render_layout_start(string $title, string $active = 'home'): void {
             </span>
             <?php if ($item['key'] === 'received_list' && $unreadCount > 0): ?>
               <span class="min-w-6 h-6 px-2  bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$unreadCount?></span>
+            <?php endif; ?>
+            <?php if ($item['key'] === 'manage_staff' && $staffRemovalPending > 0): ?>
+              <span class="min-w-6 h-6 px-2  bg-amber-500 text-white text-xs flex items-center justify-center font-bold"><?=$staffRemovalPending?></span>
             <?php endif; ?>
           </a>
         <?php endforeach; ?>

@@ -120,6 +120,111 @@ function log_admin_action(PDO $pdo, string $action, string $entityType, ?int $en
     $stmt->execute([$actorId, $action, $entityType, $entityId, $json, $ip, date('c')]);
 }
 
+/**
+ * Field officer removal: only the coordinator who created them must approve;
+ * if created by super admin (or unknown), any coordinator may approve.
+ */
+function coordinator_can_approve_fo_delete(PDO $pdo, int $coordinatorId, array $target): bool {
+    if ((string)($target['role'] ?? '') !== ROLE_FIELD_OFFICER) {
+        return false;
+    }
+    $creatorId = (int)($target['created_by_admin_id'] ?? 0);
+    if ($creatorId <= 0) {
+        return true;
+    }
+    $stmt = $pdo->prepare('SELECT role FROM admins WHERE id = ?');
+    $stmt->execute([$creatorId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return true;
+    }
+    if ((string)$row['role'] === ROLE_COORDINATOR) {
+        return $creatorId === $coordinatorId;
+    }
+
+    return true;
+}
+
+/**
+ * Permanently remove a staff row (chat messages, child created_by links, optional pending request row).
+ *
+ * @param array{id:int,username?:string,role?:string} $target
+ * @param array<string,mixed>|null $auditExtra merged into audit details
+ */
+function staff_perform_hard_delete(PDO $pdo, array $target, ?array $auditExtra = null): void {
+    $targetId = (int)($target['id'] ?? 0);
+    if ($targetId <= 0) {
+        throw new InvalidArgumentException('Invalid staff delete target');
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('DELETE FROM staff_delete_requests WHERE target_admin_id = ?')->execute([$targetId]);
+        $pdo->prepare('UPDATE admins SET created_by_admin_id = NULL WHERE created_by_admin_id = ?')->execute([$targetId]);
+
+        try {
+            $pdo->prepare('DELETE FROM chat_messages WHERE admin_id = ?')->execute([$targetId]);
+        } catch (Throwable $e) {
+            // table may be absent in older DBs
+        }
+
+        $pdo->prepare('DELETE FROM admins WHERE id = ?')->execute([$targetId]);
+
+        $chk = $pdo->prepare('SELECT COUNT(*) FROM admins WHERE id = ?');
+        $chk->execute([$targetId]);
+        if ((int)$chk->fetchColumn() !== 0) {
+            $pdo->rollBack();
+            throw new RuntimeException('Staff delete did not remove the row');
+        }
+
+        $details = array_merge([
+            'deleted_username' => (string)($target['username'] ?? ''),
+            'deleted_role' => (string)($target['role'] ?? ''),
+        ], $auditExtra ?? []);
+        log_admin_action($pdo, 'staff_account_deleted', 'admin', $targetId, $details);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+}
+
+/**
+ * Pending FO removal requests this coordinator is allowed to approve or reject.
+ *
+ * @return list<array<string,mixed>>
+ */
+function staff_pending_removal_rows_for_coordinator(PDO $pdo, int $coordinatorId): array {
+    $stmt = $pdo->query(
+        'SELECT r.id AS request_id, r.requested_at, r.requested_by_admin_id,
+            a.id AS target_id, a.username AS target_username, a.role AS target_role, a.phone, a.created_at, a.created_by_admin_id
+        FROM staff_delete_requests r
+        INNER JOIN admins a ON a.id = r.target_admin_id
+        ORDER BY r.requested_at ASC'
+    );
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $out = [];
+    foreach ($rows as $row) {
+        $target = [
+            'id' => (int)$row['target_id'],
+            'role' => (string)$row['target_role'],
+            'created_by_admin_id' => $row['created_by_admin_id'],
+        ];
+        if (coordinator_can_approve_fo_delete($pdo, $coordinatorId, $target)) {
+            $out[] = $row;
+        }
+    }
+
+    return $out;
+}
+
+function staff_pending_removal_count_for_coordinator(PDO $pdo, int $coordinatorId): int {
+    return count(staff_pending_removal_rows_for_coordinator($pdo, $coordinatorId));
+}
+
 function get_setting(PDO $pdo, string $key, string $default = ''): string {
     $stmt = $pdo->prepare('SELECT value FROM app_settings WHERE key = ?');
     $stmt->execute([$key]);
