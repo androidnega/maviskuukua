@@ -119,14 +119,16 @@ function create_photo_jpeg_binary(array $member): ?string {
         return null;
     }
 
-    $scale = max($targetW / $srcW, $targetH / $srcH);
-    $cropW = (int)round($targetW / $scale);
-    $cropH = (int)round($targetH / $scale);
-    $srcX = (int)max(0, floor(($srcW - $cropW) / 2));
-    $srcY = (int)max(0, floor(($srcH - $cropH) / 2));
-
+    // Fit image within passport frame (no over-zoom crop), keep full face visible.
+    $scale = min($targetW / $srcW, $targetH / $srcH);
+    $drawW = max(1, (int)round($srcW * $scale));
+    $drawH = max(1, (int)round($srcH * $scale));
+    $dstX = (int)floor(($targetW - $drawW) / 2);
+    $dstY = (int)floor(($targetH - $drawH) / 2);
     $target = imagecreatetruecolor($targetW, $targetH);
-    imagecopyresampled($target, $src, 0, 0, $srcX, $srcY, $targetW, $targetH, $cropW, $cropH);
+    $white = imagecolorallocate($target, 255, 255, 255);
+    imagefilledrectangle($target, 0, 0, $targetW, $targetH, $white);
+    imagecopyresampled($target, $src, $dstX, $dstY, 0, 0, $drawW, $drawH, $srcW, $srcH);
 
     ob_start();
     imagejpeg($target, null, 88);
