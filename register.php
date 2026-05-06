@@ -55,20 +55,17 @@ function optimize_photo_to_jpeg(string $tmpPath, int $maxBytes = 153600): ?strin
         return strlen($raw) <= $maxBytes ? $raw : null;
     }
 
-    $srcW = imagesx($src);
-    $srcH = imagesy($src);
-    if ($srcW <= 0 || $srcH <= 0) {
-        imagedestroy($src);
+    $cropped = passport_center_crop_gd($src);
+    imagedestroy($src);
+    if ($cropped === false) {
         return null;
     }
 
-    $maxDim = 1200;
-    $scale = min(1.0, $maxDim / max($srcW, $srcH));
-    $targetW = max(1, (int)round($srcW * $scale));
-    $targetH = max(1, (int)round($srcH * $scale));
-    $target = imagecreatetruecolor($targetW, $targetH);
-    imagecopyresampled($target, $src, 0, 0, 0, 0, $targetW, $targetH, $srcW, $srcH);
-    imagedestroy($src);
+    $target = passport_scale_max_edge_gd($cropped, 1200);
+    imagedestroy($cropped);
+    if ($target === false) {
+        return null;
+    }
 
     $qualities = [85, 78, 72, 66, 60, 54, 48, 42, 36, 30];
     $best = null;

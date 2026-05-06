@@ -95,6 +95,85 @@ function jpeg_binary_dimensions(string $jpeg): ?array {
     return null;
 }
 
+/** Passport-style portrait ratio (width : height), matches common ID photo proportions and PDF slot layout. */
+const PASSPORT_ASPECT_W = 35;
+const PASSPORT_ASPECT_H = 45;
+
+function passport_aspect_wh(): float {
+    return PASSPORT_ASPECT_W / PASSPORT_ASPECT_H;
+}
+
+/**
+ * Center-crop a GD image to passport width:height ratio.
+ *
+ * @param resource|\GdImage $src
+ * @return resource|\GdImage|false
+ */
+function passport_center_crop_gd($src) {
+    $srcW = imagesx($src);
+    $srcH = imagesy($src);
+    if ($srcW <= 0 || $srcH <= 0) {
+        return false;
+    }
+    $r = passport_aspect_wh();
+    $rw = $srcW / $srcH;
+    if ($rw > $r) {
+        $cropH = $srcH;
+        $cropW = (int)max(1, round($srcH * $r));
+        $sx = (int)(($srcW - $cropW) / 2);
+        $sy = 0;
+    } else {
+        $cropW = $srcW;
+        $cropH = (int)max(1, round($srcW / $r));
+        $sx = 0;
+        $sy = (int)(($srcH - $cropH) / 2);
+    }
+    $cropped = @imagecrop($src, ['x' => $sx, 'y' => $sy, 'width' => $cropW, 'height' => $cropH]);
+
+    return $cropped !== false ? $cropped : false;
+}
+
+/**
+ * Resize passport-ratio image so longest edge ≤ $maxEdge pixels (aspect unchanged).
+ *
+ * @param resource|\GdImage $cropped Passport-ratio image
+ * @return resource|\GdImage|false
+ */
+function passport_scale_max_edge_gd($cropped, int $maxEdge) {
+    $cw = imagesx($cropped);
+    $ch = imagesy($cropped);
+    if ($cw <= 0 || $ch <= 0) {
+        return false;
+    }
+    $scale = min(1.0, $maxEdge / max($cw, $ch));
+    $nw = max(1, (int)round($cw * $scale));
+    $nh = max(1, (int)round($ch * $scale));
+    $dst = imagecreatetruecolor($nw, $nh);
+    imagecopyresampled($dst, $cropped, 0, 0, 0, 0, $nw, $nh, $cw, $ch);
+
+    return $dst;
+}
+
+/**
+ * Resize passport-ratio image to an exact output height (width derived from 35:45).
+ *
+ * @param resource|\GdImage $cropped
+ * @return resource|\GdImage|false
+ */
+function passport_resize_to_height_gd($cropped, int $targetHeightPx) {
+    $cw = imagesx($cropped);
+    $ch = imagesy($cropped);
+    if ($cw <= 0 || $ch <= 0 || $targetHeightPx < 2) {
+        return false;
+    }
+    $tw = max(1, (int)round($targetHeightPx * PASSPORT_ASPECT_W / PASSPORT_ASPECT_H));
+    $th = $targetHeightPx;
+    $dst = imagecreatetruecolor($tw, $th);
+    imagecopyresampled($dst, $cropped, 0, 0, 0, 0, $tw, $th, $cw, $ch);
+
+    return $dst;
+}
+
 function load_member_pdf_payload(int $memberId): array {
     $path = pdf_overrides_path($memberId);
     if (!is_file($path)) {
@@ -110,6 +189,9 @@ function load_member_pdf_payload(int $memberId): array {
     }
     return $decoded;
 }
+
+/** Pixel height for passport raster embedded in PDF (width follows 35:45). */
+const PDF_PASSPORT_EMBED_HEIGHT = 450;
 
 function create_photo_jpeg_binary(array $member): ?string {
     $photoPath = trim((string)($member['photo_path'] ?? ''));
@@ -137,12 +219,14 @@ function create_photo_jpeg_binary(array $member): ?string {
     $mime = (string)(mime_content_type($fullPath) ?: '');
     $ext = strtolower((string)pathinfo($fullPath, PATHINFO_EXTENSION));
 
-    // If source is already JPEG, embed directly to guarantee display even without GD.
-    if ($mime === 'image/jpeg' || $mime === 'image/jpg' || $ext === 'jpg' || $ext === 'jpeg') {
-        return $raw;
-    }
+    $gdOk = function_exists('imagecreatefromstring') && function_exists('imagecreatetruecolor')
+        && function_exists('imagejpeg');
 
-    if (!function_exists('imagecreatefromstring') || !function_exists('imagecreatetruecolor')) {
+    if (!$gdOk) {
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg' || $ext === 'jpg' || $ext === 'jpeg') {
+            return $raw;
+        }
+
         return null;
     }
 
@@ -154,35 +238,29 @@ function create_photo_jpeg_binary(array $member): ?string {
         $src = @imagecreatefromwebp($fullPath);
     }
     if (!$src) {
+        if ($mime === 'image/jpeg' || $mime === 'image/jpg' || $ext === 'jpg' || $ext === 'jpeg') {
+            return $raw;
+        }
+
         return null;
     }
 
-    $targetW = 120;
-    $targetH = 140;
-    $srcW = imagesx($src);
-    $srcH = imagesy($src);
-    if ($srcW <= 0 || $srcH <= 0) {
-        imagedestroy($src);
+    $cropped = passport_center_crop_gd($src);
+    imagedestroy($src);
+    if ($cropped === false) {
         return null;
     }
 
-    // Fit image within passport frame (no over-zoom crop), keep full face visible.
-    $scale = min($targetW / $srcW, $targetH / $srcH);
-    $drawW = max(1, (int)round($srcW * $scale));
-    $drawH = max(1, (int)round($srcH * $scale));
-    $dstX = (int)floor(($targetW - $drawW) / 2);
-    $dstY = (int)floor(($targetH - $drawH) / 2);
-    $target = imagecreatetruecolor($targetW, $targetH);
-    $white = imagecolorallocate($target, 255, 255, 255);
-    imagefilledrectangle($target, 0, 0, $targetW, $targetH, $white);
-    imagecopyresampled($target, $src, $dstX, $dstY, 0, 0, $drawW, $drawH, $srcW, $srcH);
+    $passport = passport_resize_to_height_gd($cropped, PDF_PASSPORT_EMBED_HEIGHT);
+    imagedestroy($cropped);
+    if ($passport === false) {
+        return null;
+    }
 
     ob_start();
-    imagejpeg($target, null, 88);
+    imagejpeg($passport, null, 88);
     $jpeg = (string)ob_get_clean();
-
-    imagedestroy($target);
-    imagedestroy($src);
+    imagedestroy($passport);
 
     return $jpeg !== '' ? $jpeg : null;
 }
