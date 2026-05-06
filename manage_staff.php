@@ -161,6 +161,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('manage_staff.php');
     }
 
+    if ($action === 'super_admin_force_delete') {
+        if (!is_super_admin()) {
+            flash('admin_notice', 'Only the super admin can force-delete accounts.');
+            redirect('manage_staff.php');
+        }
+        $targetId = (int)($_POST['target_id'] ?? 0);
+        $stmt = $pdo->prepare('SELECT id, username, role, created_by_admin_id FROM admins WHERE id = ?');
+        $stmt->execute([$targetId]);
+        $target = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$target || !staff_target_deletable_by_actor($target)) {
+            flash('admin_notice', 'That account cannot be deleted.');
+            redirect('manage_staff.php');
+        }
+        if ((string)$target['role'] !== ROLE_FIELD_OFFICER) {
+            flash('admin_notice', 'Force delete applies to field officers. Use Delete account for coordinators.');
+            redirect('manage_staff.php');
+        }
+
+        $pendingStmt = $pdo->prepare('SELECT id FROM staff_delete_requests WHERE target_admin_id = ?');
+        $pendingStmt->execute([$targetId]);
+        $hadPendingRemoval = (bool)$pendingStmt->fetch(PDO::FETCH_ASSOC);
+
+        $creatorMeta = null;
+        $creatorId = (int)($target['created_by_admin_id'] ?? 0);
+        if ($creatorId > 0) {
+            $cst = $pdo->prepare('SELECT id, username, role FROM admins WHERE id = ?');
+            $cst->execute([$creatorId]);
+            $creatorMeta = $cst->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
+
+        $superName = (string)($_SESSION['admin_username'] ?? '');
+        $auditExtras = [
+            'super_admin_override' => true,
+            'super_admin_actor_id' => $actorId,
+            'super_admin_actor_username' => $superName,
+            'had_pending_removal_request' => $hadPendingRemoval,
+            'created_by_admin_id' => $creatorId > 0 ? $creatorId : null,
+            'created_by_username' => $creatorMeta['username'] ?? null,
+            'created_by_role' => $creatorMeta['role'] ?? null,
+        ];
+
+        try {
+            staff_perform_hard_delete($pdo, $target, $auditExtras);
+        } catch (Throwable $e) {
+            error_log('manage_staff force delete failed: ' . $e->getMessage());
+            flash('admin_notice', 'Delete failed. Try again or check server logs.');
+            redirect('manage_staff.php');
+        }
+
+        if ($creatorMeta !== null && (string)$creatorMeta['role'] === ROLE_COORDINATOR) {
+            log_admin_action($pdo, 'staff_override_delete_coordinator_context', 'admin', (int)$creatorMeta['id'], [
+                'note' => 'Audit link: a field officer created under this coordinator was removed by super admin (workflow overridden).',
+                'deleted_staff_id' => $targetId,
+                'deleted_staff_username' => $target['username'],
+                'super_admin_actor_id' => $actorId,
+                'super_admin_actor_username' => $superName,
+                'had_pending_removal_request' => $hadPendingRemoval,
+            ]);
+        }
+
+        flash('admin_notice', 'Account permanently removed (super admin override). Audit logs recorded.');
+        redirect('manage_staff.php');
+    }
+
     if ($action === 'delete') {
         if (!is_super_admin()) {
             flash('admin_notice', 'Only the super admin can delete staff accounts.');
@@ -175,12 +239,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('manage_staff.php');
         }
         if ((string)$target['role'] === ROLE_FIELD_OFFICER) {
-            flash('admin_notice', 'Field officers must be removed via “Request removal” so a coordinator can approve.');
+            flash('admin_notice', 'Field officers: use Request removal, or Force delete (override) as super admin.');
             redirect('manage_staff.php');
         }
 
         try {
-            staff_perform_hard_delete($pdo, $target);
+            staff_perform_hard_delete($pdo, $target, [
+                'via_super_admin_standard_delete' => true,
+                'super_admin_actor_id' => $actorId,
+                'super_admin_actor_username' => (string)($_SESSION['admin_username'] ?? ''),
+            ]);
         } catch (Throwable $e) {
             error_log('manage_staff delete failed: ' . $e->getMessage());
             flash('admin_notice', 'Delete failed. Try again or check server logs.');
@@ -315,7 +383,7 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
 <div class="max-w-6xl mx-auto">
   <h1 class="text-3xl font-black text-slate-900">Staff accounts</h1>
   <p class="text-slate-500 mt-1 text-sm"><?= is_super_admin()
-    ? 'Super admin: create accounts, reset passwords. Coordinators are deleted immediately. Field officers require you to request removal; the coordinator who created them must approve (if you created the field officer as super admin, any coordinator may approve).'
+    ? 'Super admin: create accounts, reset passwords. Coordinators: delete immediately. Field officers: default workflow is request removal then coordinator approval — or use Force delete (override) to remove immediately (fully audited).'
     : 'Coordinator: create field officers, reset passwords, and approve or decline super-admin requests to remove field officers.' ?></p>
   <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
@@ -410,6 +478,9 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
             $canRequestFoRemoval = is_super_admin()
                 && staff_target_deletable_by_actor($s)
                 && (string)$s['role'] === ROLE_FIELD_OFFICER;
+            $canForceDelFo = is_super_admin()
+                && staff_target_deletable_by_actor($s)
+                && (string)$s['role'] === ROLE_FIELD_OFFICER;
             $pendingAt = $pendingByTarget[(int)$s['id']] ?? null;
             $canReset = staff_target_password_resettable_by_actor($s);
           ?>
@@ -456,7 +527,14 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
                 <button type="submit" class="w-full sm:w-auto text-xs font-semibold text-slate-800 px-3 py-2 border border-slate-300 bg-white text-left sm:text-center">Cancel request</button>
               </form>
               <?php endif; ?>
-              <?php if (!$canReset && !$canDelCoord && !($canRequestFoRemoval && $pendingAt === null) && !($canRequestFoRemoval && $pendingAt !== null)): ?>
+              <?php if ($canForceDelFo): ?>
+              <form method="post" class="w-full sm:w-auto" onsubmit="return confirm('SUPER ADMIN OVERRIDE: Delete this field officer immediately?\n\nThis bypasses coordinator approval. Audit logs will record you (super admin) and, if applicable, the coordinator who created this account.');">
+                <input type="hidden" name="staff_action" value="super_admin_force_delete">
+                <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                <button type="submit" class="w-full sm:w-auto text-xs font-semibold text-white px-3 py-2 bg-red-950 border border-red-900 text-left sm:text-center">Force delete (override)</button>
+              </form>
+              <?php endif; ?>
+              <?php if (!$canReset && !$canDelCoord && !($canRequestFoRemoval && $pendingAt === null) && !($canRequestFoRemoval && $pendingAt !== null) && !$canForceDelFo): ?>
               <span class="text-xs text-slate-400">—</span>
               <?php endif; ?>
             </div>
@@ -479,6 +557,9 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
                       && staff_target_deletable_by_actor($s)
                       && (string)$s['role'] === ROLE_COORDINATOR;
                   $canRequestFoRemoval = is_super_admin()
+                      && staff_target_deletable_by_actor($s)
+                      && (string)$s['role'] === ROLE_FIELD_OFFICER;
+                  $canForceDelFo = is_super_admin()
                       && staff_target_deletable_by_actor($s)
                       && (string)$s['role'] === ROLE_FIELD_OFFICER;
                   $pendingAt = $pendingByTarget[(int)$s['id']] ?? null;
@@ -520,7 +601,14 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
                     <button type="submit" class="w-full xl:w-auto text-xs font-semibold text-slate-800 px-2 py-1.5 border border-slate-300 bg-white">Cancel request</button>
                   </form>
                   <?php endif; ?>
-                  <?php if (!$canReset && !$canDelCoord && !($canRequestFoRemoval && $pendingAt === null) && !($canRequestFoRemoval && $pendingAt !== null)): ?>
+                  <?php if ($canForceDelFo): ?>
+                  <form method="post" onsubmit="return confirm('SUPER ADMIN OVERRIDE: Delete this field officer immediately?\n\nThis bypasses coordinator approval. Audit logs will record you (super admin) and, if applicable, the coordinator who created this account.');">
+                    <input type="hidden" name="staff_action" value="super_admin_force_delete">
+                    <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
+                    <button type="submit" class="w-full xl:w-auto text-xs font-semibold text-white px-2 py-1.5 bg-red-950 border border-red-900">Force delete (override)</button>
+                  </form>
+                  <?php endif; ?>
+                  <?php if (!$canReset && !$canDelCoord && !($canRequestFoRemoval && $pendingAt === null) && !($canRequestFoRemoval && $pendingAt !== null) && !$canForceDelFo): ?>
                   <span class="text-xs text-slate-400">—</span>
                   <?php endif; ?>
                   </div>
