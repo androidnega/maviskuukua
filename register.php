@@ -128,13 +128,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     validate_required($old, 'positions_held', 'Positions held', $errors);
     validate_required_selection($old, 'languages', 'Languages', $errors);
     validate_required($old, 'profession', 'Profession', $errors);
-    validate_required($old, 'proposer_name', 'Proposer name', $errors);
-    validate_required($old, 'proposer_party_id', 'Proposer party ID', $errors);
-    validate_required($old, 'proposer_phone_no', 'Proposer phone number', $errors);
     validate_required($old, 'membership_id', 'Membership ID', $errors);
 
     if (!isset($errors['phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $old['phone_no'])) $errors['phone_no'] = 'Enter a valid Ghana phone number.';
-    if (!isset($errors['proposer_phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $old['proposer_phone_no'])) $errors['proposer_phone_no'] = 'Enter a valid proposer phone number.';
+    $proposerPhone = trim((string)($old['proposer_phone_no'] ?? ''));
+    if ($proposerPhone !== '' && !isset($errors['proposer_phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $proposerPhone)) {
+        $errors['proposer_phone_no'] = 'Enter a valid proposer phone number.';
+    }
     if (!isset($errors['year_joined']) && !preg_match('/^\d{4}$/', $old['year_joined'])) $errors['year_joined'] = 'Year joined must be a 4-digit year.';
     if (!isset($errors['voter_id_no']) && !preg_match('/^[A-Z0-9]{8,15}$/i', $old['voter_id_no'])) $errors['voter_id_no'] = 'Voter ID format should be letters/numbers only (8-15 chars).';
     if (!isset($errors['membership_id']) && !preg_match('/^[A-Z0-9]{10,}$/i', $old['membership_id'])) $errors['membership_id'] = 'Membership ID must be at least 10 letters/numbers.';
@@ -195,9 +195,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $old['positions_held'],
                     implode(', ', $old['languages']),
                     $old['profession'],
-                    '',
-                    '',
-                    '',
+                    trim((string)($old['proposer_name'] ?? '')),
+                    strtoupper(trim((string)($old['proposer_party_id'] ?? ''))),
+                    $proposerPhone,
                     strtoupper($old['membership_id']),
                     $photoPath,
                     $createdAt
@@ -217,9 +217,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'positions_held' => $old['positions_held'],
                     'languages' => implode(', ', $old['languages']),
                     'profession' => $old['profession'],
-                    'proposer_name' => $old['proposer_name'],
-                    'proposer_party_id' => strtoupper($old['proposer_party_id']),
-                    'proposer_phone_no' => $old['proposer_phone_no'],
+                    'proposer_name' => trim((string)($old['proposer_name'] ?? '')),
+                    'proposer_party_id' => strtoupper(trim((string)($old['proposer_party_id'] ?? ''))),
+                    'proposer_phone_no' => $proposerPhone,
                     'membership_id' => strtoupper($old['membership_id']),
                     'created_at' => $createdAt,
                 ];
@@ -302,10 +302,10 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <button type="button" id="nextBtn2" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
       </div>
       </section>
-      <section id="step3" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information</h2><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <label>Proposer's name *<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_name',$errors)?></label>
-        <label>Proposer's party ID *<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_party_id',$errors)?></label>
-        <label>Proposer's phone no *<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_phone_no',$errors)?></label>
+      <section id="step3" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information <span class="font-normal text-slate-500 text-base">(optional)</span></h2><p class="text-sm text-slate-500 mb-4">Leave blank if you do not have proposer details.</p><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <label>Proposer's name<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase"><?=err('proposer_name',$errors)?></label>
+        <label>Proposer's party ID<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase"><?=err('proposer_party_id',$errors)?></label>
+        <label>Proposer's phone no<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3"><?=err('proposer_phone_no',$errors)?></label>
       </div>
       <div class="mt-6 space-y-4">
         <div>
