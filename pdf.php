@@ -13,23 +13,85 @@ function member_value(array $member, string $key): string {
     return $value !== '' ? $value : 'N/A';
 }
 
+function pdf_overrides_dir(): string {
+    $dir = STORAGE_DIR . '/pdf_overrides';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    return $dir;
+}
+
+function pdf_overrides_path(int $memberId): string {
+    return pdf_overrides_dir() . '/member_' . $memberId . '.json';
+}
+
+function save_member_pdf_payload(int $memberId, array $payload): void {
+    $safe = [
+        'firstname' => trim((string)($payload['firstname'] ?? '')),
+        'surname' => trim((string)($payload['surname'] ?? '')),
+        'place_of_birth' => trim((string)($payload['place_of_birth'] ?? '')),
+        'date_of_birth' => trim((string)($payload['date_of_birth'] ?? '')),
+        'branch' => trim((string)($payload['branch'] ?? '')),
+        'phone_no' => trim((string)($payload['phone_no'] ?? '')),
+        'year_joined' => trim((string)($payload['year_joined'] ?? '')),
+        'voter_id_no' => trim((string)($payload['voter_id_no'] ?? '')),
+        'ghana_card_no' => trim((string)($payload['ghana_card_no'] ?? '')),
+        'positions_held' => trim((string)($payload['positions_held'] ?? '')),
+        'languages' => trim((string)($payload['languages'] ?? '')),
+        'profession' => trim((string)($payload['profession'] ?? '')),
+        'proposer_name' => trim((string)($payload['proposer_name'] ?? '')),
+        'proposer_party_id' => trim((string)($payload['proposer_party_id'] ?? '')),
+        'proposer_phone_no' => trim((string)($payload['proposer_phone_no'] ?? '')),
+        'membership_id' => trim((string)($payload['membership_id'] ?? '')),
+        'created_at' => trim((string)($payload['created_at'] ?? '')),
+    ];
+    @file_put_contents(pdf_overrides_path($memberId), json_encode($safe, JSON_UNESCAPED_UNICODE));
+}
+
+function load_member_pdf_payload(int $memberId): array {
+    $path = pdf_overrides_path($memberId);
+    if (!is_file($path)) {
+        return [];
+    }
+    $raw = @file_get_contents($path);
+    if ($raw === false || $raw === '') {
+        return [];
+    }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return [];
+    }
+    return $decoded;
+}
+
 function create_photo_jpeg_binary(array $member): ?string {
     $photoPath = trim((string)($member['photo_path'] ?? ''));
-    if ($photoPath === '') {
-        return null;
+    $fullPath = '';
+    if ($photoPath !== '') {
+        $candidate = BASE_DIR . '/' . ltrim($photoPath, '/');
+        if (is_file($candidate)) {
+            $fullPath = $candidate;
+        }
     }
-    $fullPath = BASE_DIR . '/' . ltrim($photoPath, '/');
-    if (!is_file($fullPath)) {
+    // Backward-compatible fallback for old records that used predictable naming.
+    if ($fullPath === '' && !empty($member['id'])) {
+        $legacy = PHOTO_DIR . '/photo_' . (int)$member['id'] . '.jpg';
+        if (is_file($legacy)) {
+            $fullPath = $legacy;
+        }
+    }
+    if ($fullPath === '') {
         return null;
     }
     $raw = @file_get_contents($fullPath);
     if ($raw === false) {
         return null;
     }
-    $mime = mime_content_type($fullPath) ?: '';
+    $mime = (string)(mime_content_type($fullPath) ?: '');
+    $ext = strtolower((string)pathinfo($fullPath, PATHINFO_EXTENSION));
 
     // If source is already JPEG, embed directly to guarantee display even without GD.
-    if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+    if ($mime === 'image/jpeg' || $mime === 'image/jpg' || $ext === 'jpg' || $ext === 'jpeg') {
         return $raw;
     }
 
@@ -38,6 +100,12 @@ function create_photo_jpeg_binary(array $member): ?string {
     }
 
     $src = @imagecreatefromstring($raw);
+    if (!$src && $ext === 'png' && function_exists('imagecreatefrompng')) {
+        $src = @imagecreatefrompng($fullPath);
+    }
+    if (!$src && $ext === 'webp' && function_exists('imagecreatefromwebp')) {
+        $src = @imagecreatefromwebp($fullPath);
+    }
     if (!$src) {
         return null;
     }
@@ -75,40 +143,12 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $filename = 'member_' . $member['id'] . '_' . preg_replace('/[^A-Za-z0-9_-]/', '', $member['membership_id']) . '.pdf';
     $path = PDF_DIR . '/' . $filename;
 
-    $sections = [
-        'Personal Information' => [
-            ['Full Name', trim(member_value($member, 'firstname') . ' ' . member_value($member, 'surname'))],
-            ['Date of Birth', pdf_date(member_value($member, 'date_of_birth'))],
-            ['Place of Birth', member_value($member, 'place_of_birth')],
-        ],
-        'Contact Information' => [
-            ['Phone Number', member_value($member, 'phone_no')],
-            ['Branch', member_value($member, 'branch')],
-            ['Languages', member_value($member, 'languages')],
-        ],
-        'Identification Information' => [
-            ['Voters ID No', member_value($member, 'voter_id_no')],
-            ['Ghana Card No', member_value($member, 'ghana_card_no')],
-            ['Membership ID', member_value($member, 'membership_id')],
-        ],
-        'Membership Information' => [
-            ['Year Joined', member_value($member, 'year_joined')],
-            ['Position Held', member_value($member, 'positions_held')],
-            ['Profession', member_value($member, 'profession')],
-        ],
-        'Proposer Information' => [
-            ['Proposer Name', member_value($pdfMember, 'proposer_name')],
-            ['Proposer Phone', member_value($pdfMember, 'proposer_phone_no')],
-            ['Proposer Party ID', member_value($pdfMember, 'proposer_party_id')],
-        ],
-    ];
-
     $pageW = 595;
     $pageH = 842;
-    $margin = 42;
-    $accentBlue = '0.06 0.52 0.27';
-    $darkText = '0.12 0.12 0.12';
-    $lightBorder = '0.84 0.88 0.86';
+    $margin = 28;
+    $brandBlue = '0.08 0.45 0.24';
+    $mutedText = '0.22 0.27 0.34';
+    $lineColor = '0.79 0.88 0.82';
 
     $commands = [];
     $textBlock = [];
@@ -124,98 +164,173 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
         $tb[] = 'ET';
     };
 
-    // Header
-    $currentY = 760;
-    $addText($textBlock, $margin, $currentY, 'F2', 20, $accentBlue, 'Membership Registration Form');
-    $currentY -= 24;
-    $addText($textBlock, $margin, $currentY, 'F1', 11, $darkText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
-    $currentY -= 18;
-    $addText($textBlock, $margin, $currentY, 'F2', 10, $darkText, 'Reference Number: ' . member_value($pdfMember, 'membership_id'));
-    $addText($textBlock, $margin + 250, $currentY, 'F1', 10, $darkText, 'Date Submitted: ' . pdf_date(member_value($pdfMember, 'created_at')));
-    $currentY -= 10;
-    $commands[] = '0.82 0.90 0.85 RG';
-    $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $margin, $currentY, $pageW - $margin, $currentY);
+    $drawSection = static function(
+        array &$commands,
+        array &$textBlock,
+        callable $addText,
+        float $x,
+        float $topY,
+        float $width,
+        float $height,
+        string $title,
+        array $rows
+    ) use ($brandBlue, $mutedText, $lineColor): void {
+        $headerH = 26.0;
+        $iconSize = 16.0;
+        $bodyTop = $topY - $headerH;
+        $bodyBottom = $topY - $height;
 
-    // Passport photo box (top aligned to header title Y=760)
-    $photoW = 96;
-    $photoH = 112;
+        $commands[] = '1 1 1 rg';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $x, $bodyBottom, $width, $height);
+        $commands[] = $lineColor . ' RG';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $x, $bodyBottom, $width, $height);
+        $commands[] = '0.91 0.97 0.93 rg';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $x, $bodyTop, $width, $headerH);
+        $commands[] = '0.66 0.82 0.70 RG';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $x, $bodyTop, $width, $headerH);
+
+        $iconX = $x + 8;
+        $iconY = $topY - 20;
+        $commands[] = $brandBlue . ' rg';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $iconX, $iconY, $iconSize, $iconSize);
+        $addText($textBlock, $iconX + 5, $iconY + 4, 'F2', 9, '1 1 1', '*');
+        $addText($textBlock, $x + 30, $topY - 18, 'F2', 11, $brandBlue, strtoupper($title));
+
+        $rowY = $bodyTop - 14;
+        $rowLineGap = 19;
+        foreach ($rows as [$label, $value]) {
+            $safe = $value !== '' ? $value : 'N/A';
+            $addText($textBlock, $x + 8, $rowY, 'F2', 9, $mutedText, $label . ':');
+            $addText($textBlock, $x + 118, $rowY, 'F1', 9, $mutedText, $safe);
+            $commands[] = '0.88 0.93 0.89 RG';
+            $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $x + 6, $rowY - 5, $x + $width - 6, $rowY - 5);
+            $rowY -= $rowLineGap;
+        }
+    };
+
+    // Page background
+    $commands[] = '0.96 0.99 0.97 rg';
+    $commands[] = sprintf('0 0 %.2f %.2f re f', $pageW, $pageH);
+
+    // Header
+    $logoX = $margin;
+    $logoY = 730;
+    $logoR = 26;
+    $commands[] = '0.89 0.96 0.91 rg';
+    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $logoX, $logoY, $logoR * 2, $logoR * 2);
+    $commands[] = '0.57 0.77 0.62 RG';
+    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $logoX, $logoY, $logoR * 2, $logoR * 2);
+    $titleX = $logoX + 68;
+    $addText($textBlock, $titleX, 774, 'F2', 21, $brandBlue, 'Membership Registration Form');
+    $addText($textBlock, $titleX, 748, 'F1', 11, $mutedText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
+    $commands[] = '0.69 0.83 0.73 RG';
+    $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $titleX, 738, $pageW - 146, 738);
+    $addText($textBlock, $titleX, 713, 'F2', 10, $brandBlue, 'Reference No.: ' . member_value($pdfMember, 'membership_id'));
+    $addText($textBlock, $titleX, 692, 'F2', 10, $brandBlue, 'Date Submitted: ' . pdf_date(member_value($pdfMember, 'created_at')));
+
+    // Photo
+    $photoW = 95;
+    $photoH = 120;
     $photoX = $pageW - $margin - $photoW;
-    $photoTopY = 760;
-    $photoY = $photoTopY - $photoH;
-    $commands[] = '0.65 0.68 0.72 RG';
+    $photoY = 670;
+    $commands[] = '1 1 1 rg';
+    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $photoX, $photoY, $photoW, $photoH);
+    $commands[] = '0.47 0.70 0.54 RG';
     $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $photoX, $photoY, $photoW, $photoH);
     if (!$hasPhoto) {
-        $addText($textBlock, $photoX + 18, $photoY + ($photoH / 2) - 4, 'F1', 10, '0.35 0.35 0.35', 'No Photo');
+        $addText($textBlock, $photoX + 26, $photoY + 54, 'F2', 10, '0.42 0.42 0.42', 'No Photo');
     }
 
-    // Form-like sections
-    $lineStart = $margin;
-    $lineEnd = $pageW - $margin;
-    $contentWidth = $lineEnd - $lineStart;
-    $rowHeight = 28;
-    $wellHeight = 25;
-    $wellTextPadding = 8;
-    $sectionGap = 45;
-    $sectionBottomPadding = 10;
-    $currentY = 640;
-    foreach ($sections as $title => $rows) {
-        // Section container sized from currentY and row metrics.
-        $sectionTop = $currentY;
-        $sectionHeight = $wellHeight + (count($rows) * $rowHeight) + $sectionBottomPadding;
-        $sectionBottom = $sectionTop - $sectionHeight;
+    // Body cards (template-like structure, using your own data labels/values)
+    $colGap = 14;
+    $colW = (($pageW - (2 * $margin)) - $colGap) / 2;
+    $leftX = $margin;
+    $rightX = $margin + $colW + $colGap;
+    $row1Y = 640;
+    $row2Y = 448;
+    $cardH = 172;
 
-        // White section body/background.
-        $commands[] = '1 1 1 rg';
-        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $lineStart, $sectionBottom, $contentWidth, $sectionHeight);
-        $commands[] = '0.88 0.93 0.90 RG';
-        $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $lineStart, $sectionBottom, $contentWidth, $sectionHeight);
+    $drawSection(
+        $commands,
+        $textBlock,
+        $addText,
+        $leftX,
+        $row1Y,
+        $colW,
+        $cardH,
+        '1. Personal Information',
+        [
+            ['Full Name', trim(member_value($pdfMember, 'firstname') . ' ' . member_value($pdfMember, 'surname'))],
+            ['Date of Birth', pdf_date(member_value($pdfMember, 'date_of_birth'))],
+            ['Place of Birth', member_value($pdfMember, 'place_of_birth')],
+        ]
+    );
 
-        // Section title well drawn inside first 25 points of section rectangle.
-        $wellTop = $currentY;
-        $wellBottom = $wellTop - $wellHeight;
-        $commands[] = '0.88 0.92 0.90 rg';
-        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $lineStart, $wellBottom, $contentWidth, $wellHeight);
-        $commands[] = '0.72 0.86 0.76 RG';
-        $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $lineStart, $wellBottom, $contentWidth, $wellHeight);
-        $addText($textBlock, $lineStart + $wellTextPadding, $wellTop - $wellTextPadding - 2, 'F2', 12, $accentBlue, $title);
-        $currentY = $wellBottom;
+    $drawSection(
+        $commands,
+        $textBlock,
+        $addText,
+        $rightX,
+        $row1Y,
+        $colW,
+        $cardH,
+        '2. Contact Details',
+        [
+            ['Phone Number', member_value($pdfMember, 'phone_no')],
+            ['Branch', member_value($pdfMember, 'branch')],
+            ['Languages', member_value($pdfMember, 'languages')],
+        ]
+    );
 
-        // Section rows (28pt vertical spacing).
-        foreach ($rows as [$label, $value]) {
-            $rowTop = $currentY;
-            $rowBottom = $rowTop - $rowHeight;
-            $dividerY = $rowBottom + 4;
-            $textY = $rowTop - 18;
+    $drawSection(
+        $commands,
+        $textBlock,
+        $addText,
+        $leftX,
+        $row2Y,
+        $colW,
+        $cardH,
+        '3. Identification Details',
+        [
+            ['Voters ID No', member_value($pdfMember, 'voter_id_no')],
+            ['Ghana Card No', member_value($pdfMember, 'ghana_card_no')],
+            ['Membership ID', member_value($pdfMember, 'membership_id')],
+        ]
+    );
 
-            $safeValue = $value !== '' ? $value : 'N/A';
-            $text = $label . ': ' . $safeValue;
-            $addText($textBlock, $lineStart + 10, $textY, 'F1', 10, $darkText, $text);
-            $commands[] = $lightBorder . ' RG';
-            $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $lineStart + 1, $dividerY, $lineEnd - 1, $dividerY);
-            $currentY = $rowBottom;
-        }
-        $currentY -= $sectionBottomPadding;
-        $currentY -= $sectionGap;
-    }
+    $drawSection(
+        $commands,
+        $textBlock,
+        $addText,
+        $rightX,
+        $row2Y,
+        $colW,
+        $cardH,
+        '4. Proposer Information',
+        [
+            ['Proposer Name', member_value($pdfMember, 'proposer_name')],
+            ['Proposer Party ID', member_value($pdfMember, 'proposer_party_id')],
+            ['Proposer Phone', member_value($pdfMember, 'proposer_phone_no')],
+        ]
+    );
 
-    // Guaranteed proposer block near footer for registration-only proposer values.
-    $proposerBlockTop = 132;
-    $proposerBlockHeight = 90;
-    $commands[] = '1 1 1 rg';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $lineStart, $proposerBlockTop - $proposerBlockHeight, $contentWidth, $proposerBlockHeight);
-    $commands[] = '0.88 0.93 0.90 RG';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $lineStart, $proposerBlockTop - $proposerBlockHeight, $contentWidth, $proposerBlockHeight);
-    $commands[] = '0.88 0.92 0.90 rg';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $lineStart, $proposerBlockTop - 25, $contentWidth, 25.0);
-    $commands[] = '0.72 0.86 0.76 RG';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $lineStart, $proposerBlockTop - 25, $contentWidth, 25.0);
-    $addText($textBlock, $lineStart + 8, $proposerBlockTop - 10, 'F2', 12, $accentBlue, 'Proposer Information');
-    $addText($textBlock, $lineStart + 10, $proposerBlockTop - 42, 'F1', 10, $darkText, 'Proposer Name: ' . member_value($pdfMember, 'proposer_name'));
-    $addText($textBlock, $lineStart + 10, $proposerBlockTop - 60, 'F1', 10, $darkText, 'Proposer Party ID: ' . member_value($pdfMember, 'proposer_party_id'));
-    $addText($textBlock, $lineStart + 10, $proposerBlockTop - 78, 'F1', 10, $darkText, 'Proposer Phone: ' . member_value($pdfMember, 'proposer_phone_no'));
+    $drawSection(
+        $commands,
+        $textBlock,
+        $addText,
+        $margin,
+        256,
+        $pageW - (2 * $margin),
+        124,
+        '5. Membership Details',
+        [
+            ['Year Joined', member_value($pdfMember, 'year_joined')],
+            ['Position Held', member_value($pdfMember, 'positions_held')],
+            ['Profession', member_value($pdfMember, 'profession')],
+        ]
+    );
 
-    // Light watermark-style site footer (outside main content hierarchy)
-    $addText($textBlock, $pageW - 190, 30, 'F1', 8, '0.72 0.72 0.72', 'www.kuukuacares.com');
+    $addText($textBlock, $pageW - 150, 20, 'F1', 8, '0.68 0.68 0.68', 'www.kuukuacares.com');
 
     if ($hasPhoto) {
         $commands[] = 'q';

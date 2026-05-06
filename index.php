@@ -14,7 +14,7 @@ if (is_admin()) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body class="bg-slate-950 text-white min-h-screen">
-  <main class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+  <main class="max-w-6xl mx-auto px-4 pt-16 pb-8 md:pt-24 md:pb-12">
     <div class="grid lg:grid-cols-2 gap-8 items-center">
       <section>
         <h1 class="text-4xl md:text-6xl font-black leading-tight text-white">Mavis Kuukua Bissue Membership Registration</h1>

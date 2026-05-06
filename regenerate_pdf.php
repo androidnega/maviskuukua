@@ -23,7 +23,11 @@ try {
         redirect('received_list.php');
     }
 
-    $filename = create_member_pdf($member);
+    $pdfOverrides = load_member_pdf_payload($id);
+    if (isset($_SESSION['pdf_overrides'][$id]) && is_array($_SESSION['pdf_overrides'][$id])) {
+        $pdfOverrides = array_merge($pdfOverrides, $_SESSION['pdf_overrides'][$id]);
+    }
+    $filename = create_member_pdf($member, $pdfOverrides);
     $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
     $update->execute([$filename, $id]);
     flash('admin_notice', 'PDF regenerated successfully.');

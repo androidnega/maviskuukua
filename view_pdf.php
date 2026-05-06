@@ -18,9 +18,9 @@ if (!$member) {
 }
 
 try {
-    $pdfOverrides = [];
+    $pdfOverrides = load_member_pdf_payload($id);
     if (isset($_SESSION['pdf_overrides'][$id]) && is_array($_SESSION['pdf_overrides'][$id])) {
-        $pdfOverrides = $_SESSION['pdf_overrides'][$id];
+        $pdfOverrides = array_merge($pdfOverrides, $_SESSION['pdf_overrides'][$id]);
     }
     $existingPdf = trim((string)($member['pdf_path'] ?? ''));
     $filePath = $existingPdf !== '' ? PDF_DIR . '/' . $existingPdf : '';
