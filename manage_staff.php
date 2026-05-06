@@ -37,16 +37,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('admin_notice', 'That account cannot be deleted.');
             redirect('manage_staff.php');
         }
+
         try {
-            $pdo->prepare('DELETE FROM chat_messages WHERE admin_id = ?')->execute([$targetId]);
+            $pdo->beginTransaction();
+
+            $pdo->prepare('UPDATE admins SET created_by_admin_id = NULL WHERE created_by_admin_id = ?')->execute([$targetId]);
+
+            try {
+                $pdo->prepare('DELETE FROM chat_messages WHERE admin_id = ?')->execute([$targetId]);
+            } catch (Throwable $e) {
+                // table may be absent
+            }
+
+            $pdo->prepare('DELETE FROM admins WHERE id = ?')->execute([$targetId]);
+
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM admins WHERE id = ?');
+            $chk->execute([$targetId]);
+            $still = (int)$chk->fetchColumn();
+
+            if ($still !== 0) {
+                $pdo->rollBack();
+                flash('admin_notice', 'Could not remove this account (database blocked the delete).');
+                redirect('manage_staff.php');
+            }
+
+            log_admin_action($pdo, 'staff_account_deleted', 'admin', $targetId, [
+                'deleted_username' => $target['username'],
+                'deleted_role' => $target['role'],
+            ]);
+
+            $pdo->commit();
         } catch (Throwable $e) {
-            // table may be absent in some deployments
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('manage_staff delete failed: ' . $e->getMessage());
+            flash('admin_notice', 'Delete failed. Try again or check server logs.');
+            redirect('manage_staff.php');
         }
-        $pdo->prepare('DELETE FROM admins WHERE id = ?')->execute([$targetId]);
-        log_admin_action($pdo, 'staff_account_deleted', 'admin', $targetId, [
-            'deleted_username' => $target['username'],
-            'deleted_role' => $target['role'],
-        ]);
+
         flash('admin_notice', 'Account removed.');
         redirect('manage_staff.php');
     }
@@ -202,7 +231,7 @@ if (is_super_admin()) {
     <div class="bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
       <h2 class="font-bold text-lg text-slate-900">Directory</h2>
 
-      <div class="mt-4 md:hidden space-y-3">
+      <div class="mt-4 xl:hidden space-y-3">
         <?php foreach ($staff as $s): ?>
           <?php
             $canDel = staff_target_deletable_by_actor($s);
@@ -219,19 +248,19 @@ if (is_super_admin()) {
               <div class="flex justify-between gap-3"><dt class="text-slate-400 shrink-0">Phone</dt><dd class="font-mono text-slate-800 text-right break-all"><?=h((string)($s['phone'] ?? '—'))?></dd></div>
               <div class="flex justify-between gap-3"><dt class="text-slate-400 shrink-0">Created</dt><dd class="text-slate-700 text-right"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></dd></div>
             </dl>
-            <div class="mt-4 flex flex-wrap gap-3 justify-end">
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
               <?php if ($canReset): ?>
-              <form method="post" class="inline">
+              <form method="post" class="w-full sm:w-auto">
                 <input type="hidden" name="staff_action" value="reset_password">
                 <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                <button type="submit" class="text-xs font-semibold text-indigo-700 px-2 py-1 border border-indigo-200 bg-white">Reset password</button>
+                <button type="submit" class="w-full sm:w-auto text-xs font-semibold text-indigo-800 px-3 py-2 border border-indigo-200 bg-white text-left sm:text-center">Reset password</button>
               </form>
               <?php endif; ?>
               <?php if ($canDel): ?>
-              <form method="post" class="inline" onsubmit="return confirm('Permanently delete this staff account?');">
+              <form method="post" class="w-full sm:w-auto" onsubmit="return confirm('Permanently delete this staff account?');">
                 <input type="hidden" name="staff_action" value="delete">
                 <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                <button type="submit" class="text-xs font-semibold text-red-700 px-2 py-1 border border-red-200 bg-white">Delete</button>
+                <button type="submit" class="w-full sm:w-auto text-xs font-semibold text-red-800 px-3 py-2 border border-red-200 bg-white text-left sm:text-center">Delete account</button>
               </form>
               <?php endif; ?>
               <?php if (!$canReset && !$canDel): ?>
@@ -245,10 +274,10 @@ if (is_super_admin()) {
         <?php endif; ?>
       </div>
 
-      <div class="hidden md:block mt-4 overflow-x-auto -mx-1 px-1">
-        <table class="w-full text-sm min-w-[520px]">
+      <div class="hidden xl:block mt-4 w-full">
+        <table class="w-full text-sm table-fixed border-collapse">
           <thead><tr class="text-left text-xs uppercase text-slate-500 border-b border-slate-200">
-            <th class="py-2.5 pr-2">User</th><th class="py-2.5 pr-2">Role</th><th class="py-2.5 pr-2">Phone</th><th class="py-2.5 pr-2">Created</th><th class="py-2.5 text-right">Actions</th>
+            <th class="py-2.5 pr-2 w-[22%]">User</th><th class="py-2.5 pr-2 w-[18%]">Role</th><th class="py-2.5 pr-2 w-[18%]">Phone</th><th class="py-2.5 pr-2 w-[14%]">Created</th><th class="py-2.5 text-right w-[28%]">Actions</th>
           </tr></thead>
           <tbody>
             <?php foreach ($staff as $s): ?>
@@ -256,30 +285,31 @@ if (is_super_admin()) {
                   $canDel = staff_target_deletable_by_actor($s);
                   $canReset = staff_target_password_resettable_by_actor($s);
               ?>
-              <tr class="border-b border-slate-100">
-                <td class="py-2.5 pr-2 font-semibold"><?=h((string)$s['username'])?><?php if ((int)$s['id'] === $actorId): ?> <span class="text-xs text-slate-400">(you)</span><?php endif; ?></td>
-                <td class="py-2.5 pr-2"><?=h((string)$s['role'])?></td>
-                <td class="py-2.5 pr-2 font-mono text-xs"><?=h((string)($s['phone'] ?? '—'))?></td>
-                <td class="py-2.5 pr-2 text-xs text-slate-600"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></td>
-                <td class="py-2.5 text-right whitespace-nowrap">
+              <tr class="border-b border-slate-100 align-top">
+                <td class="py-2.5 pr-2 font-semibold break-words"><?=h((string)$s['username'])?><?php if ((int)$s['id'] === $actorId): ?> <span class="text-xs text-slate-400">(you)</span><?php endif; ?></td>
+                <td class="py-2.5 pr-2 break-words"><?=h((string)$s['role'])?></td>
+                <td class="py-2.5 pr-2 font-mono text-xs break-all"><?=h((string)($s['phone'] ?? '—'))?></td>
+                <td class="py-2.5 pr-2 text-xs text-slate-600 whitespace-nowrap"><?=h(date('d M Y', strtotime((string)$s['created_at'])))?></td>
+                <td class="py-2.5 text-right">
+                  <div class="flex flex-col gap-2 items-stretch xl:items-end">
                   <?php if ($canReset): ?>
-                  <form method="post" class="inline">
+                  <form method="post">
                     <input type="hidden" name="staff_action" value="reset_password">
                     <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                    <button type="submit" class="text-xs font-semibold text-indigo-700 hover:underline">Reset password</button>
+                    <button type="submit" class="w-full xl:w-auto text-xs font-semibold text-indigo-800 px-2 py-1.5 border border-indigo-200 bg-white">Reset password</button>
                   </form>
                   <?php endif; ?>
                   <?php if ($canDel): ?>
-                  <?php if ($canReset): ?><span class="text-slate-300 mx-1">|</span><?php endif; ?>
-                  <form method="post" class="inline" onsubmit="return confirm('Permanently delete this staff account?');">
+                  <form method="post" onsubmit="return confirm('Permanently delete this staff account?');">
                     <input type="hidden" name="staff_action" value="delete">
                     <input type="hidden" name="target_id" value="<?=(int)$s['id']?>">
-                    <button type="submit" class="text-xs font-semibold text-red-700 hover:underline">Delete</button>
+                    <button type="submit" class="w-full xl:w-auto text-xs font-semibold text-red-800 px-2 py-1.5 border border-red-200 bg-white">Delete account</button>
                   </form>
                   <?php endif; ?>
                   <?php if (!$canReset && !$canDel): ?>
                   <span class="text-xs text-slate-400">—</span>
                   <?php endif; ?>
+                  </div>
                 </td>
               </tr>
             <?php endforeach; ?>
