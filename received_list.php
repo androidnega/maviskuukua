@@ -79,57 +79,52 @@ function photo_url_for_member(array $member): ?string {
   </form>
   <div class="bg-white rounded-3xl border mt-8 overflow-hidden shadow-sm">
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50">
+      <table class="w-full text-sm leading-tight">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
           <tr>
-            <th class="text-left p-4">Member</th>
-            <th class="text-left p-4">Membership ID</th>
-            <th class="text-left p-4">Phone</th>
-            <th class="text-left p-4">Submitted</th>
-            <th class="text-left p-4">Actions</th>
+            <th class="text-left py-2 px-3 font-semibold">Member</th>
+            <th class="text-left py-2 px-3 font-semibold">Membership ID</th>
+            <th class="text-left py-2 px-3 font-semibold whitespace-nowrap">Submitted</th>
+            <th class="text-right py-2 px-3 font-semibold w-[1%]">Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach($members as $m): ?>
             <?php $photoUrl = photo_url_for_member($m); ?>
-            <tr class="border-t hover:bg-slate-50/70">
-              <td class="p-4">
-                <div class="flex items-center gap-3">
+            <tr class="border-t border-slate-100 hover:bg-slate-50/70">
+              <td class="py-2 px-3 align-middle">
+                <div class="flex items-center gap-2 min-w-0">
                   <?php if($photoUrl): ?>
-                    <img src="<?=h($photoUrl)?>" alt="Photo" class="w-10 h-10 rounded-xl object-cover border">
+                    <img src="<?=h($photoUrl)?>" alt="" class="w-8 h-8 shrink-0 rounded-lg object-cover border border-slate-200">
                   <?php else: ?>
-                    <div class="w-10 h-10 rounded-xl border bg-slate-100 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
+                    <div class="w-8 h-8 shrink-0 rounded-lg border border-slate-200 bg-slate-100 text-slate-400 flex items-center justify-center text-xs"><i class="fa-solid fa-user"></i></div>
                   <?php endif; ?>
-                  <div>
-                    <p class="font-semibold"><?=h($m['firstname'].' '.$m['surname'])?> <?php if(is_new_member($m)): ?><span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">NEW</span><?php endif; ?></p>
-                    <p class="text-xs text-slate-500"><?=h($m['branch'])?></p>
-                  </div>
+                  <span class="font-semibold text-sm truncate"><?=h($m['firstname'].' '.$m['surname'])?><?php if(is_new_member($m)): ?> <span class="text-[10px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold align-middle">NEW</span><?php endif; ?></span>
                 </div>
               </td>
-              <td class="p-4 font-bold"><?=h($m['membership_id'])?></td>
-              <td class="p-4"><?=h($m['phone_no'])?></td>
-              <td class="p-4"><?=h(date('d M Y, H:i', strtotime($m['created_at'])))?></td>
-              <td class="p-4">
-                <div class="flex flex-wrap items-center gap-2">
-                <a class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" href="member.php?id=<?=$m['id']?>">Details</a>
+              <td class="py-2 px-3 align-middle font-bold text-sm whitespace-nowrap"><?=h($m['membership_id'])?></td>
+              <td class="py-2 px-3 align-middle text-slate-600 text-xs whitespace-nowrap"><?=h(date('d M Y', strtotime($m['created_at'])))?></td>
+              <td class="py-2 px-3 align-middle text-right">
+                <div class="inline-flex flex-nowrap items-center justify-end gap-1 max-w-[min(100%,22rem)] overflow-x-auto">
+                <a class="shrink-0 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold" href="member.php?id=<?=$m['id']?>">Details</a>
                 <?php if($m['pdf_path']): ?>
-                  <a class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-semibold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a>
-                  <a class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" target="_blank" href="print_pdf.php?id=<?=$m['id']?>">Print</a>
+                  <a class="shrink-0 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a>
+                  <a class="shrink-0 px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold" target="_blank" href="print_pdf.php?id=<?=$m['id']?>">Print</a>
                 <?php endif; ?>
-                <form method="post" action="regenerate_pdf.php" class="inline">
+                <form method="post" action="regenerate_pdf.php" class="inline shrink-0">
                   <input type="hidden" name="id" value="<?=$m['id']?>">
-                  <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold">Regenerate</button>
+                  <button type="submit" class="px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold">Regen</button>
                 </form>
-                <form method="post" action="delete_member.php" class="inline" onsubmit="return confirm('Delete this member and related files?');">
+                <form method="post" action="delete_member.php" class="inline shrink-0" onsubmit="return confirm('Delete this member and related files?');">
                   <input type="hidden" name="id" value="<?=$m['id']?>">
-                  <button type="submit" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 font-semibold">Delete</button>
+                  <button type="submit" class="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold">Del</button>
                 </form>
                 </div>
               </td>
             </tr>
           <?php endforeach; ?>
           <?php if(!$members): ?>
-            <tr><td colspan="6" class="p-8 text-center text-slate-500">No submissions yet.</td></tr>
+            <tr><td colspan="4" class="p-8 text-center text-slate-500">No submissions yet.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>

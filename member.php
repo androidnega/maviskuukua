@@ -51,7 +51,44 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
         </div>
       </div>
     </div>
-    <dl class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-8"><?php foreach(['firstname'=>'Firstname','surname'=>'Surname','place_of_birth'=>'Place of birth','date_of_birth'=>'Date of birth','branch'=>'Branch','phone_no'=>'Phone no','year_joined'=>'Year joined','voter_id_no'=>'Voters ID no','ghana_card_no'=>'Ghana card no','positions_held'=>'Positions held','languages'=>'Languages','profession'=>'Profession','membership_id'=>'Membership ID','created_at'=>'Submitted At'] as $key=>$label): ?><div class="bg-slate-50 rounded-xl p-3 border border-slate-100"><dt class="text-slate-500 text-xs"><?=$label?></dt><dd class="font-semibold mt-1 text-sm leading-tight"><?=h($m[$key] ?: 'N/A')?></dd></div><?php endforeach; ?></dl>
+    <?php
+    $detailFields = [
+        ['firstname', 'Firstname'],
+        ['surname', 'Surname'],
+        ['place_of_birth', 'Place of birth'],
+        ['date_of_birth', 'Date of birth', 'date'],
+        ['branch', 'Branch'],
+        ['phone_no', 'Phone no'],
+        ['year_joined', 'Year joined'],
+        ['voter_id_no', 'Voters ID no'],
+        ['ghana_card_no', 'Ghana card no'],
+        ['positions_held', 'Positions held'],
+        ['languages', 'Languages'],
+        ['profession', 'Profession'],
+        ['membership_id', 'Membership ID'],
+        ['proposer_name', "Proposer's name"],
+        ['proposer_party_id', "Proposer's party ID"],
+        ['proposer_phone_no', "Proposer's phone"],
+        ['created_at', 'Submitted at', 'datetime'],
+    ];
+    ?>
+    <dl class="grid sm:grid-cols-2 xl:grid-cols-3 gap-2.5 mt-8">
+    <?php foreach ($detailFields as $row):
+        [$key, $label] = $row;
+        $fmt = $row[2] ?? 'text';
+        $raw = trim((string)($m[$key] ?? ''));
+        if ($fmt === 'date' && $raw !== '' && strtotime($raw)) {
+            $display = date('d M Y', strtotime($raw));
+        } elseif ($fmt === 'datetime' && $raw !== '') {
+            $t = strtotime($raw);
+            $display = $t ? date('d M Y, H:i', $t) : $raw;
+        } else {
+            $display = $raw !== '' ? $raw : 'N/A';
+        }
+        ?>
+    <div class="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100"><dt class="text-slate-500 text-[11px] leading-tight"><?=h($label)?></dt><dd class="font-semibold mt-0.5 text-sm leading-snug break-words"><?=h($display)?></dd></div>
+    <?php endforeach; ?>
+    </dl>
   </div>
 </div>
 <?php render_layout_end(); ?>
