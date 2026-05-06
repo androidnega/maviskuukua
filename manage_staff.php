@@ -279,22 +279,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $loginUrl = 'https://kuukuacares.com/login.php';
         $uname = (string)$target['username'];
-        $msg = 'Kuukua Cares password reset. OTP: %otp_code%. Username: ' . $uname . ' New password: ' . $plain . ' Login: ' . $loginUrl . ' — Sponsored by Mavis Kuukua Bissue. Change password after login.';
-        $otpResult = arkesel_otp_generate($pdo, $phoneNorm, $msg);
+        $msg = 'Kuukua Cares password reset. Username: ' . $uname . ' New password: ' . $plain . ' Login: ' . $loginUrl . ' Change password after login.';
+        $smsResult = arkesel_send_sms($pdo, $phoneNorm, $msg);
 
         log_admin_action($pdo, 'staff_password_reset', 'admin', $targetId, [
             'username' => $uname,
             'role' => $target['role'],
-            'otp_ok' => $otpResult['ok'],
-            'otp_error' => $otpResult['error'] ?? null,
-            'via_arkesel_otp' => true,
-            'otp_delivery' => $otpResult['delivery'] ?? 'otp_api',
+            'sms_ok' => $smsResult['ok'],
+            'sms_error' => $smsResult['error'] ?? null,
         ]);
 
-        if ($otpResult['ok']) {
+        if ($smsResult['ok']) {
             flash('admin_notice', 'New password saved. Login details sent by SMS.');
         } else {
-            flash('admin_notice', 'Password was reset but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Set a new password again or share securely.');
+            flash('admin_notice', 'Password was reset but SMS failed: ' . ($smsResult['error'] ?? 'unknown') . '. Set a new password again or share securely.');
         }
         redirect('manage_staff.php');
     }
@@ -304,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('manage_staff.php');
     }
 
-    // Create account — password generated server-side and sent only via OTP SMS
+    // Create account — password generated server-side and sent by plain SMS (username + password only)
     $username = trim((string)($_POST['username'] ?? ''));
     $phoneRaw = trim((string)($_POST['phone'] ?? ''));
     $roleIn = trim((string)($_POST['role'] ?? ''));
@@ -330,7 +328,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $phoneNorm = sms_normalize_ghana_phone($phoneRaw);
     if ($phoneNorm === null) {
-        $err = ($err ?? '') ?: 'Enter a valid Ghana mobile number for OTP delivery (e.g. 024xxxxxxx).';
+        $err = ($err ?? '') ?: 'Enter a valid Ghana mobile number for SMS delivery (e.g. 024xxxxxxx).';
     }
 
     if ($err === null) {
@@ -340,23 +338,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newId = (int)$pdo->lastInsertId();
 
         $loginUrl = 'https://kuukuacares.com/login.php';
-        $msg = 'Kuukua Cares staff account. OTP: %otp_code%. Username: ' . $username . ' Password: ' . $password . ' Login: ' . $loginUrl . ' — Sponsored by Mavis Kuukua Bissue. Change password after login.';
-        $otpResult = arkesel_otp_generate($pdo, $phoneNorm, $msg);
+        $msg = 'Kuukua Cares staff account. Username: ' . $username . ' Password: ' . $password . ' Login: ' . $loginUrl . ' Change password after login.';
+        $smsResult = arkesel_send_sms($pdo, $phoneNorm, $msg);
 
         log_admin_action($pdo, 'staff_account_created', 'admin', $newId, [
             'username' => $username,
             'role' => $allowedRole,
             'phone' => $phoneNorm,
-            'otp_ok' => $otpResult['ok'],
-            'otp_error' => $otpResult['error'] ?? null,
-            'password_sent_via_otp_sms' => true,
-            'otp_delivery' => $otpResult['delivery'] ?? 'otp_api',
+            'sms_ok' => $smsResult['ok'],
+            'sms_error' => $smsResult['error'] ?? null,
+            'password_sent_via_sms' => true,
         ]);
 
-        if ($otpResult['ok']) {
+        if ($smsResult['ok']) {
             flash('admin_notice', 'Account created. Credentials sent by SMS.');
         } else {
-            flash('admin_notice', 'Account created, but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Share credentials securely out of band.');
+            flash('admin_notice', 'Account created, but SMS failed: ' . ($smsResult['error'] ?? 'unknown') . '. Share credentials securely out of band.');
         }
         redirect('manage_staff.php');
     }
@@ -421,7 +418,7 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
   <div class="mt-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
     <div>
       <h2 class="font-bold text-lg text-slate-900">Directory</h2>
-      <p class="text-xs text-slate-500 mt-1">Each staff user has a numeric ID. Open <strong>Create staff account</strong> to add someone; they receive username and a generated password by Arkesel OTP SMS only.</p>
+      <p class="text-xs text-slate-500 mt-1">Each staff user has a numeric ID. Open <strong>Create staff account</strong> to add someone; they receive username and a generated password by SMS.</p>
     </div>
     <button type="button" id="btn-open-create-staff" class="shrink-0 px-5 py-3 bg-slate-950 text-white font-bold hover:bg-slate-800 text-sm w-full sm:w-auto">
       Create staff account
@@ -434,7 +431,7 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
       <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50">
         <div>
           <h3 class="font-bold text-slate-900">Create staff account</h3>
-          <p class="text-xs text-slate-500 mt-1">A secure password is generated for you and sent to the phone below via OTP SMS only.</p>
+          <p class="text-xs text-slate-500 mt-1">A secure password is generated and sent to the phone below by SMS (username and password only).</p>
         </div>
         <button type="button" id="btn-close-create-staff" class="text-slate-500 hover:text-slate-800 p-1" aria-label="Close">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -457,13 +454,13 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
           <input name="username" required minlength="3" class="mt-1 w-full border border-slate-200 p-3" autocomplete="off">
         </label>
         <label class="block">
-          <span class="text-sm font-semibold text-slate-700">Phone (OTP)</span>
+          <span class="text-sm font-semibold text-slate-700">Phone (SMS)</span>
           <input name="phone" type="tel" required placeholder="0241234567" class="mt-1 w-full border border-slate-200 p-3" autocomplete="off">
         </label>
       </div>
       <div class="px-5 py-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end bg-white">
         <button type="button" id="btn-cancel-create-staff" class="px-4 py-2 border border-slate-300 bg-white text-slate-800 text-sm font-semibold hover:bg-slate-50">Cancel</button>
-        <button type="submit" class="px-5 py-2 bg-slate-950 text-white font-bold hover:bg-slate-800 text-sm">Create &amp; send OTP</button>
+        <button type="submit" class="px-5 py-2 bg-slate-950 text-white font-bold hover:bg-slate-800 text-sm">Create &amp; send SMS</button>
       </div>
     </form>
   </dialog>
