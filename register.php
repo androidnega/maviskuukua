@@ -41,6 +41,60 @@ function normalize_ghana_card(string $value): ?string {
     return 'GHA-' . substr($compact, 3, 9) . '-' . substr($compact, 12, 1);
 }
 
+function optimize_photo_to_jpeg(string $tmpPath, int $maxBytes = 153600): ?string {
+    $raw = @file_get_contents($tmpPath);
+    if ($raw === false || $raw === '') {
+        return null;
+    }
+    if (!function_exists('imagecreatefromstring') || !function_exists('imagecreatetruecolor')) {
+        return strlen($raw) <= $maxBytes ? $raw : null;
+    }
+
+    $src = @imagecreatefromstring($raw);
+    if (!$src) {
+        return strlen($raw) <= $maxBytes ? $raw : null;
+    }
+
+    $srcW = imagesx($src);
+    $srcH = imagesy($src);
+    if ($srcW <= 0 || $srcH <= 0) {
+        imagedestroy($src);
+        return null;
+    }
+
+    $maxDim = 1200;
+    $scale = min(1.0, $maxDim / max($srcW, $srcH));
+    $targetW = max(1, (int)round($srcW * $scale));
+    $targetH = max(1, (int)round($srcH * $scale));
+    $target = imagecreatetruecolor($targetW, $targetH);
+    imagecopyresampled($target, $src, 0, 0, 0, 0, $targetW, $targetH, $srcW, $srcH);
+    imagedestroy($src);
+
+    $qualities = [85, 78, 72, 66, 60, 54, 48, 42, 36, 30];
+    $best = null;
+    foreach ($qualities as $quality) {
+        ob_start();
+        imagejpeg($target, null, $quality);
+        $jpeg = (string)ob_get_clean();
+        if ($jpeg === '') {
+            continue;
+        }
+        if ($best === null || strlen($jpeg) < strlen($best)) {
+            $best = $jpeg;
+        }
+        if (strlen($jpeg) <= $maxBytes) {
+            $best = $jpeg;
+            break;
+        }
+    }
+    imagedestroy($target);
+
+    if ($best === null || strlen($best) > $maxBytes) {
+        return null;
+    }
+    return $best;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [];
     foreach ($_POST as $key => $value) {
@@ -100,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mime = mime_content_type($_FILES['photo']['tmp_name']);
         if (!isset($allowed[$mime])) {
             $errors['photo'] = 'Photo must be JPG, PNG, or WEBP.';
-        } elseif ($_FILES['photo']['size'] > 3 * 1024 * 1024) {
-            $errors['photo'] = 'Photo must not be larger than 3MB.';
+        } elseif ($_FILES['photo']['size'] > 500 * 1024) {
+            $errors['photo'] = 'Photo must not be larger than 500KB.';
         }
     }
 
@@ -114,10 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['general'] = 'A registration already exists with this phone number, IDs, or membership ID.';
             } else {
                 if ($hasPhotoUpload) {
-                    $mime = mime_content_type($_FILES['photo']['tmp_name']);
-                    $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$mime];
-                    $photoName = 'photo_' . time() . '_' . bin2hex(random_bytes(5)) . '.' . $ext;
-                    if (!@move_uploaded_file($_FILES['photo']['tmp_name'], PHOTO_DIR . '/' . $photoName)) {
+                    $optimizedPhoto = optimize_photo_to_jpeg($_FILES['photo']['tmp_name'], 150 * 1024);
+                    if ($optimizedPhoto === null) {
+                        throw new RuntimeException('Photo could not be optimized to 150KB. Please use a smaller image.');
+                    }
+                    $photoName = 'photo_' . time() . '_' . bin2hex(random_bytes(5)) . '.jpg';
+                    if (@file_put_contents(PHOTO_DIR . '/' . $photoName, $optimizedPhoto) === false) {
                         throw new RuntimeException('Unable to save uploaded photo.');
                     }
                     $photoPath = 'storage/photos/' . $photoName;
@@ -248,7 +304,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
       </div>
       <div class="mt-6">
         <label class="block">Photo (optional)<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white"><?=err('photo',$errors)?></label>
-        <p class="text-xs text-slate-500 mt-2">Accepted formats: JPG, PNG, WEBP. Max size: 3MB.</p>
+        <p class="text-xs text-slate-500 mt-2">Accepted formats: JPG, PNG, WEBP. Upload max: 500KB. Stored image optimized to 150KB max.</p>
         <img id="photoPreview" class="mt-3 w-36 h-36 rounded-xl object-cover border hidden" alt="Preview">
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
