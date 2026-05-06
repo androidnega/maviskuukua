@@ -311,7 +311,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <div>
           <p class="font-medium">Photo *</p>
           <p class="text-xs text-slate-500 mt-1">Upload from your device, or tap <strong>Take selfie</strong> if you cannot pick a file (camera permission is required for the selfie option).</p>
-          <label class="block mt-2">Choose file<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white" required><?=err('photo',$errors)?></label>
+          <label class="block mt-2">Choose file<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white"><?=err('photo',$errors)?></label>
           <button type="button" id="selfieStartBtn" class="mt-3 w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-slate-950 font-bold text-slate-950 hover:bg-slate-50">Take selfie</button>
           <p id="selfieStatus" class="text-sm mt-2 text-red-600 min-h-[1.25rem]" role="status"></p>
         </div>
@@ -357,6 +357,8 @@ const selfieCancelBtn = document.getElementById('selfieCancelBtn');
 const selfieError = document.getElementById('selfieError');
 const selfieStatus = document.getElementById('selfieStatus');
 let selfieStream = null;
+/** Holds selfie/chosen file when input.files assignment is unreliable (required + DataTransfer quirk). */
+let registrationPhotoFile = null;
 const ghanaCardInput = document.getElementById('ghanaCardInput');
 const uppercaseFields = document.querySelectorAll('.js-uppercase');
 const registrationForm = document.getElementById('registrationForm');
@@ -516,10 +518,18 @@ function showPhotoPreview(file) {
 
 function setPhotoFile(file) {
   if (!photoInput || !file) return;
-  const dataTransfer = new DataTransfer();
-  dataTransfer.items.add(file);
-  photoInput.files = dataTransfer.files;
+  registrationPhotoFile = file;
+  try {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    photoInput.files = dataTransfer.files;
+  } catch (err) {
+    photoInput.value = '';
+  }
   showPhotoPreview(file);
+  photoInput.setCustomValidity('');
+  photoInput.dispatchEvent(new Event('input', { bubbles: true }));
+  photoInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function stopSelfieStream() {
@@ -647,6 +657,7 @@ function clearAllRegistrationFields() {
   if (selfieStatus) selfieStatus.textContent = '';
   if (selfieCaptureBtn) selfieCaptureBtn.disabled = true;
   showPhotoPreview(null);
+  registrationPhotoFile = null;
   if (photoInput) {
     photoInput.value = '';
     photoInput.setCustomValidity('');
@@ -679,16 +690,58 @@ if (clearFormBtn) {
 }
 
 photoInput.addEventListener('change', (event) => {
-  showPhotoPreview(event.target.files[0]);
+  const f = event.target.files && event.target.files[0];
+  registrationPhotoFile = f || null;
+  showPhotoPreview(f);
 });
 
-registrationForm.addEventListener('submit', (e) => {
-  if (!photoInput.files || photoInput.files.length === 0) {
+registrationForm.addEventListener('submit', async (e) => {
+  if ((!photoInput.files || photoInput.files.length === 0) && registrationPhotoFile) {
+    setPhotoFile(registrationPhotoFile);
+  }
+
+  const hasFile =
+    photoInput.files &&
+    photoInput.files.length > 0 &&
+    photoInput.files[0] &&
+    photoInput.files[0].size > 0;
+
+  if (!hasFile && registrationPhotoFile && registrationPhotoFile.size > 0) {
     e.preventDefault();
-    photoInput.setCustomValidity('Please upload a photo or use Take selfie.');
-    photoInput.reportValidity();
+    const fd = new FormData(registrationForm);
+    fd.set('photo', registrationPhotoFile, registrationPhotoFile.name || 'selfie.jpg');
+    try {
+      const res = await fetch(registrationForm.action || window.location.pathname, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        redirect: 'follow',
+      });
+      if (res.redirected && res.url) {
+        clearRegistrationDraftStorage();
+        window.location.href = res.url;
+        return;
+      }
+      const text = await res.text();
+      document.open();
+      document.write(text);
+      document.close();
+    } catch (err) {
+      alert('Could not submit the photo. Try choosing a file from your device instead.');
+    }
     return;
   }
+
+  if (!hasFile) {
+    e.preventDefault();
+    photoInput.setCustomValidity('Please upload a photo or use Take selfie.');
+    setStep(3);
+    photoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    photoInput.reportValidity();
+    alert('Please add a photo: choose a file or use Take selfie.');
+    return;
+  }
+
   photoInput.setCustomValidity('');
   clearRegistrationDraftStorage();
 });
