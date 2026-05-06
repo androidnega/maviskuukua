@@ -149,7 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($old['date_of_birth'] ?? '') && strtotime($old['date_of_birth']) > strtotime('-15 years')) $errors['date_of_birth'] = 'Applicant must be at least 15 years old.';
     $photoPath = null;
     $hasPhotoUpload = isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
-    if ($hasPhotoUpload) {
+    if (!$hasPhotoUpload) {
+        $errors['photo'] = 'Photo is required. Upload a file from your device or use Take selfie.';
+    } else {
         $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
         $mime = mime_content_type($_FILES['photo']['tmp_name']);
         if (!isset($allowed[$mime])) {
@@ -302,10 +304,25 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <label>Proposer's party ID *<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_party_id',$errors)?></label>
         <label>Proposer's phone no *<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_phone_no',$errors)?></label>
       </div>
-      <div class="mt-6">
-        <label class="block">Photo (optional)<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white"><?=err('photo',$errors)?></label>
-        <p class="text-xs text-slate-500 mt-2">Accepted formats: JPG, PNG, WEBP. Upload max: 500KB. Stored image optimized to 150KB max.</p>
-        <img id="photoPreview" class="mt-3 w-36 h-36 rounded-xl object-cover border hidden" alt="Preview">
+      <div class="mt-6 space-y-4">
+        <div>
+          <p class="font-medium">Photo *</p>
+          <p class="text-xs text-slate-500 mt-1">Upload from your device, or tap <strong>Take selfie</strong> if you cannot pick a file (camera permission is required for the selfie option).</p>
+          <label class="block mt-2">Choose file<input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/webp" class="w-full mt-1 rounded-xl border p-3 bg-white" required><?=err('photo',$errors)?></label>
+          <button type="button" id="selfieStartBtn" class="mt-3 w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-slate-950 font-bold text-slate-950 hover:bg-slate-50">Take selfie</button>
+          <p id="selfieStatus" class="text-sm mt-2 text-red-600 min-h-[1.25rem]" role="status"></p>
+        </div>
+        <div id="selfiePanel" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <video id="selfieVideo" class="w-full max-w-md mx-auto rounded-xl bg-black aspect-video object-cover" playsinline muted autoplay></video>
+          <canvas id="selfieCanvas" class="hidden"></canvas>
+          <p id="selfieError" class="text-red-600 text-sm hidden"></p>
+          <div class="flex flex-col sm:flex-row gap-2 flex-wrap">
+            <button type="button" id="selfieCaptureBtn" class="px-6 py-2 rounded-xl bg-slate-950 text-white font-bold disabled:opacity-50" disabled>Capture photo</button>
+            <button type="button" id="selfieCancelBtn" class="px-6 py-2 rounded-xl border font-bold">Close camera</button>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500">Accepted formats: JPG, PNG, WEBP. Upload max: 500KB. Stored image optimized to 150KB max.</p>
+        <img id="photoPreview" class="w-36 h-36 rounded-xl object-cover border hidden" alt="Preview">
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
         <button type="button" id="backBtn3" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
@@ -328,6 +345,15 @@ const stepBadge2 = document.getElementById('stepBadge2');
 const stepBadge3 = document.getElementById('stepBadge3');
 const photoInput = document.getElementById('photoInput');
 const photoPreview = document.getElementById('photoPreview');
+const selfieStartBtn = document.getElementById('selfieStartBtn');
+const selfiePanel = document.getElementById('selfiePanel');
+const selfieVideo = document.getElementById('selfieVideo');
+const selfieCanvas = document.getElementById('selfieCanvas');
+const selfieCaptureBtn = document.getElementById('selfieCaptureBtn');
+const selfieCancelBtn = document.getElementById('selfieCancelBtn');
+const selfieError = document.getElementById('selfieError');
+const selfieStatus = document.getElementById('selfieStatus');
+let selfieStream = null;
 const ghanaCardInput = document.getElementById('ghanaCardInput');
 const uppercaseFields = document.querySelectorAll('.js-uppercase');
 const registrationForm = document.getElementById('registrationForm');
@@ -464,8 +490,7 @@ registrationForm.querySelectorAll('input[name]').forEach((field) => {
   field.addEventListener('change', saveDraft);
 });
 
-photoInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
+function showPhotoPreview(file) {
   if (!file) {
     photoPreview.classList.add('hidden');
     photoPreview.removeAttribute('src');
@@ -477,6 +502,146 @@ photoInput.addEventListener('change', (event) => {
     photoPreview.classList.remove('hidden');
   };
   reader.readAsDataURL(file);
+}
+
+function setPhotoFile(file) {
+  if (!photoInput || !file) return;
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  photoInput.files = dataTransfer.files;
+  showPhotoPreview(file);
+}
+
+function stopSelfieStream() {
+  if (selfieStream) {
+    selfieStream.getTracks().forEach((t) => t.stop());
+    selfieStream = null;
+  }
+  if (selfieVideo) {
+    selfieVideo.srcObject = null;
+  }
+}
+
+function showSelfieError(message) {
+  if (!selfieError) return;
+  selfieError.textContent = message;
+  selfieError.classList.remove('hidden');
+}
+
+function hideSelfieError() {
+  if (!selfieError) return;
+  selfieError.classList.add('hidden');
+  selfieError.textContent = '';
+}
+
+async function startSelfie() {
+  hideSelfieError();
+  if (selfieStatus) selfieStatus.textContent = '';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const msg = 'Your browser does not support camera access. Please upload a photo from your device instead.';
+    if (selfieStatus) selfieStatus.textContent = msg;
+    return;
+  }
+  stopSelfieStream();
+  selfiePanel.classList.remove('hidden');
+  selfieCaptureBtn.disabled = true;
+  try {
+    try {
+      selfieStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+    } catch (e1) {
+      selfieStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
+    selfieVideo.srcObject = selfieStream;
+    await selfieVideo.play().catch(() => {});
+    selfieCaptureBtn.disabled = false;
+    if (selfieStatus) selfieStatus.textContent = '';
+  } catch (err) {
+    stopSelfieStream();
+    selfiePanel.classList.add('hidden');
+    const msg = err && err.name === 'NotAllowedError'
+      ? 'Camera permission was denied. Allow camera access for this site, or upload a photo from your device.'
+      : 'Could not open the camera. Upload a photo from your device instead.';
+    if (selfieStatus) selfieStatus.textContent = msg;
+    alert(msg);
+  }
+}
+
+function captureSelfieToFile() {
+  const video = selfieVideo;
+  const canvas = selfieCanvas;
+  if (!video || !canvas || !video.videoWidth) return;
+
+  const maxDim = 1600;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const scale = Math.min(1, maxDim / Math.max(vw, vh));
+  const tw = Math.max(1, Math.round(vw * scale));
+  const th = Math.max(1, Math.round(vh * scale));
+  canvas.width = tw;
+  canvas.height = th;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, tw, th);
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          resolve(null);
+          return;
+        }
+        resolve(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
+      },
+      'image/jpeg',
+      0.88
+    );
+  });
+}
+
+if (selfieStartBtn) {
+  selfieStartBtn.addEventListener('click', () => {
+    startSelfie();
+  });
+}
+
+if (selfieCaptureBtn) {
+  selfieCaptureBtn.addEventListener('click', async () => {
+    const file = await captureSelfieToFile();
+    if (!file) {
+      alert('Could not capture image. Try again or upload a file.');
+      return;
+    }
+    setPhotoFile(file);
+    selfiePanel.classList.add('hidden');
+    stopSelfieStream();
+    hideSelfieError();
+    if (selfieStatus) selfieStatus.textContent = '';
+  });
+}
+
+if (selfieCancelBtn) {
+  selfieCancelBtn.addEventListener('click', () => {
+    selfiePanel.classList.add('hidden');
+    stopSelfieStream();
+    hideSelfieError();
+    if (selfieStatus) selfieStatus.textContent = '';
+  });
+}
+
+photoInput.addEventListener('change', (event) => {
+  showPhotoPreview(event.target.files[0]);
+});
+
+registrationForm.addEventListener('submit', (e) => {
+  if (!photoInput.files || photoInput.files.length === 0) {
+    e.preventDefault();
+    photoInput.setCustomValidity('Please upload a photo or use Take selfie.');
+    photoInput.reportValidity();
+    return;
+  }
+  photoInput.setCustomValidity('');
 });
 </script>
 </body></html>
