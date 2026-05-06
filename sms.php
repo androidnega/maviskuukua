@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 /**
- * Arkesel SMS (https://arkesel.com) — HTTP API.
- * Configure keys in Settings (super admin). Uses Bearer auth JSON API shape commonly used by Arkesel.
+ * Arkesel SMS — HTTP API (developers.arkesel.com).
+ * SMS: POST https://sms.arkesel.com/sms/api — JSON { sender, message, recipients[] }, Authorization: Bearer.
+ * OTP: POST https://sms.arkesel.com/api/otp/generate — JSON { number, sender_id, expiry, length, medium, type, message } with %otp_code%.
  */
 
 function sms_normalize_ghana_phone(string $raw): ?string {

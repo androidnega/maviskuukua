@@ -87,11 +87,12 @@ $values = [
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">SMS API URL</span>
       <input name="arkasel_api_url" value="<?=h($values['arkasel_api_url'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm">
+      <span class="text-xs text-slate-500 mt-1 block">Official JSON SMS endpoint: POST <code class="bg-slate-100 px-1">sender</code>, <code class="bg-slate-100 px-1">message</code>, <code class="bg-slate-100 px-1">recipients</code> (array of 233… numbers). Matches Arkesel’s documented <code class="bg-slate-100 px-1">https://sms.arkesel.com/sms/api</code>.</span>
     </label>
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">OTP generate URL</span>
       <input name="arkasel_otp_generate_url" value="<?=h($values['arkasel_otp_generate_url'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm">
-      <span class="text-xs text-slate-500 mt-1 block">POST JSON with <code class="bg-slate-100 px-1">number</code>, <code class="bg-slate-100 px-1">sender_id</code>, <code class="bg-slate-100 px-1">expiry</code>, <code class="bg-slate-100 px-1">length</code>, <code class="bg-slate-100 px-1">medium</code>, <code class="bg-slate-100 px-1">type</code>, and message containing <code class="bg-slate-100 px-1">%otp_code%</code>.</span>
+      <span class="text-xs text-slate-500 mt-1 block">Official OTP endpoint <code class="bg-slate-100 px-1">POST https://sms.arkesel.com/api/otp/generate</code> with JSON: <code class="bg-slate-100 px-1">number</code>, <code class="bg-slate-100 px-1">sender_id</code>, <code class="bg-slate-100 px-1">expiry</code> (1–10), <code class="bg-slate-100 px-1">length</code> (6–15), <code class="bg-slate-100 px-1">medium</code> (<code class="bg-slate-100 px-1">sms</code>), <code class="bg-slate-100 px-1">type</code> (<code class="bg-slate-100 px-1">numeric</code>), <code class="bg-slate-100 px-1">message</code> with <code class="bg-slate-100 px-1">%otp_code%</code>.</span>
     </label>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <label class="block">
