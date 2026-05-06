@@ -6,6 +6,11 @@ $stmt = db()->prepare('SELECT * FROM members WHERE id = ?');
 $stmt->execute([$id]);
 $m = $stmt->fetch();
 if (!$m) redirect('admin.php');
+if (empty($m['viewed_at'])) {
+    $markViewed = db()->prepare('UPDATE members SET viewed_at = ? WHERE id = ?');
+    $markViewed->execute([date('c'), $id]);
+    $m['viewed_at'] = date('c');
+}
 
 $photoUrl = null;
 if (!empty($m['photo_path']) && is_file(BASE_DIR . '/' . ltrim((string)$m['photo_path'], '/'))) {

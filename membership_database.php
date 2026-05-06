@@ -22,6 +22,11 @@ function member_photo_url(array $member): ?string {
   <h1 class="text-3xl font-black">Branch Executive</h1>
   <p class="text-slate-500 mt-1">Minimal member directory with quick management actions.</p>
   <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
+  <div class="mt-4 flex flex-wrap gap-2">
+    <a href="export_executives.php?format=csv" class="px-3 py-2 rounded-lg border bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-csv mr-1 text-emerald-600"></i>Export CSV</a>
+    <a href="export_executives.php?format=excel" class="px-3 py-2 rounded-lg border bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i>Export Excel</a>
+    <a href="export_executives.php?format=pdf" class="px-3 py-2 rounded-lg border bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-pdf mr-1 text-emerald-600"></i>Export PDF</a>
+  </div>
 
   <div class="mt-5">
     <input type="text" id="liveSearchInput" placeholder="Live search by name, Membership ID, or phone number" class="w-full md:w-2/3 rounded-xl border p-3">

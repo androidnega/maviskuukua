@@ -100,7 +100,8 @@ function init_db(PDO $pdo): void {
         membership_id TEXT NOT NULL UNIQUE,
         photo_path TEXT,
         pdf_path TEXT,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        viewed_at TEXT
     )");
     migrate_members_schema($pdo);
     $stmt = $pdo->prepare('SELECT COUNT(*) AS total FROM admins WHERE username = ?');
@@ -161,7 +162,8 @@ function migrate_members_schema(PDO $pdo): void {
                 membership_id TEXT NOT NULL UNIQUE,
                 photo_path TEXT,
                 pdf_path TEXT,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                viewed_at TEXT
             )");
             break;
         }
@@ -169,5 +171,8 @@ function migrate_members_schema(PDO $pdo): void {
 
     if (!in_array('photo_path', $available, true)) {
         $pdo->exec('ALTER TABLE members ADD COLUMN photo_path TEXT');
+    }
+    if (!in_array('viewed_at', $available, true)) {
+        $pdo->exec('ALTER TABLE members ADD COLUMN viewed_at TEXT');
     }
 }

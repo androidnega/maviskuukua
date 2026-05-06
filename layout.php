@@ -5,11 +5,11 @@ function render_layout_start(string $title, string $active = 'home'): void {
     if (!is_admin()) {
         redirect('login.php');
     }
-    $newToday = 0;
+    $unreadCount = 0;
     try {
-        $newToday = (int)db()->query("SELECT COUNT(*) AS total FROM members WHERE date(created_at) = date('now')")->fetch()['total'];
+        $unreadCount = (int)db()->query("SELECT COUNT(*) AS total FROM members WHERE viewed_at IS NULL")->fetch()['total'];
     } catch (Throwable $e) {
-        $newToday = 0;
+        $unreadCount = 0;
     }
     $menu = [
         ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => 'admin.php', 'icon' => 'fa-chart-line'],
@@ -49,8 +49,8 @@ function render_layout_start(string $title, string $active = 'home'): void {
             <i class="fa-solid <?=h($item['icon'])?> w-5"></i>
             <span><?=h($item['label'])?></span>
             </span>
-            <?php if ($item['key'] === 'received_list' && $newToday > 0): ?>
-              <span class="min-w-6 h-6 px-2 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$newToday?></span>
+            <?php if ($item['key'] === 'received_list' && $unreadCount > 0): ?>
+              <span class="min-w-6 h-6 px-2 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$unreadCount?></span>
             <?php endif; ?>
           </a>
         <?php endforeach; ?>

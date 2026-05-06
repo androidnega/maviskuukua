@@ -5,6 +5,9 @@ $pdo = db();
 $notice = flash('admin_notice');
 $search = trim($_GET['search'] ?? '');
 $sort = $_GET['sort'] ?? 'newest';
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
 $orderBy = 'created_at DESC';
 if ($sort === 'oldest') {
     $orderBy = 'created_at ASC';
@@ -13,14 +16,33 @@ if ($sort === 'oldest') {
 } elseif ($sort === 'membership_desc') {
     $orderBy = 'membership_id DESC';
 }
-
+$whereSql = '';
+$params = [];
 if ($search !== '') {
-    $stmt = $pdo->prepare("SELECT * FROM members WHERE membership_id LIKE ? OR phone_no LIKE ? ORDER BY $orderBy");
+    $whereSql = ' WHERE membership_id LIKE ? OR phone_no LIKE ? ';
     $like = '%' . $search . '%';
-    $stmt->execute([$like, $like]);
-    $members = $stmt->fetchAll();
-} else {
-    $members = $pdo->query("SELECT * FROM members ORDER BY $orderBy")->fetchAll();
+    $params = [$like, $like];
+}
+$countStmt = $pdo->prepare("SELECT COUNT(*) AS total FROM members $whereSql");
+$countStmt->execute($params);
+$totalRecords = (int)$countStmt->fetch()['total'];
+$totalPages = max(1, (int)ceil($totalRecords / $perPage));
+if ($page > $totalPages) {
+    $page = $totalPages;
+    $offset = ($page - 1) * $perPage;
+}
+$query = "SELECT * FROM members $whereSql ORDER BY $orderBy LIMIT $perPage OFFSET $offset";
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
+$members = $stmt->fetchAll();
+$unreadCount = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE viewed_at IS NULL")->fetch()['total'];
+
+function page_url(int $targetPage, string $search, string $sort): string {
+    $qs = http_build_query(['search' => $search, 'sort' => $sort, 'page' => $targetPage]);
+    return 'received_list.php?' . $qs;
+}
+function is_new_member(array $member): bool {
+    return trim((string)($member['viewed_at'] ?? '')) === '';
 }
 
 function photo_url_for_member(array $member): ?string {
@@ -42,7 +64,7 @@ function photo_url_for_member(array $member): ?string {
       <h1 class="text-3xl font-black">List Received</h1>
       <p class="text-slate-500 mt-1">All submitted membership forms.</p>
     </div>
-    <span class="px-3 py-1 rounded-full bg-slate-900 text-white text-sm font-semibold"><?=count($members)?> records</span>
+    <span class="px-3 py-1 rounded-full bg-emerald-600 text-white text-sm font-semibold"><?=$unreadCount?> new</span>
   </div>
   <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
   <form method="get" class="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -79,7 +101,7 @@ function photo_url_for_member(array $member): ?string {
                     <div class="w-10 h-10 rounded-xl border bg-slate-100 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
                   <?php endif; ?>
                   <div>
-                    <p class="font-semibold"><?=h($m['firstname'].' '.$m['surname'])?></p>
+                    <p class="font-semibold"><?=h($m['firstname'].' '.$m['surname'])?> <?php if(is_new_member($m)): ?><span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">NEW</span><?php endif; ?></p>
                     <p class="text-xs text-slate-500"><?=h($m['branch'])?></p>
                   </div>
                 </div>
@@ -113,5 +135,14 @@ function photo_url_for_member(array $member): ?string {
       </table>
     </div>
   </div>
+  <?php if($totalPages > 1): ?>
+  <div class="mt-4 flex items-center justify-between gap-3 text-sm">
+    <p class="text-slate-500">Showing page <?=$page?> of <?=$totalPages?> (<?=$totalRecords?> records)</p>
+    <div class="flex items-center gap-2">
+      <?php if($page > 1): ?><a class="px-3 py-1.5 rounded-lg border bg-white" href="<?=h(page_url($page - 1, $search, $sort))?>">Previous</a><?php endif; ?>
+      <?php if($page < $totalPages): ?><a class="px-3 py-1.5 rounded-lg border bg-white" href="<?=h(page_url($page + 1, $search, $sort))?>">Next</a><?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
 </div>
 <?php render_layout_end(); ?>
