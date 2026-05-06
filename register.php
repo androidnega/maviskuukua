@@ -92,16 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $old['positions_held'],
                     $old['languages'],
                     $old['profession'],
-                    $old['proposer_name'],
-                    strtoupper($old['proposer_party_id']),
-                    $old['proposer_phone_no'],
+                    '',
+                    '',
+                    '',
                     strtoupper($old['membership_id']),
                     $photoPath,
                     $createdAt
                 ]);
                 $id = (int)$pdo->lastInsertId();
                 $member = $pdo->query('SELECT * FROM members WHERE id = ' . $id)->fetch();
-                $pdfPath = create_member_pdf($member);
+                $pdfOverrides = [
+                    'proposer_name' => $old['proposer_name'],
+                    'proposer_party_id' => strtoupper($old['proposer_party_id']),
+                    'proposer_phone_no' => $old['proposer_phone_no'],
+                ];
+                $_SESSION['pdf_overrides'][$id] = $pdfOverrides;
+                $pdfPath = create_member_pdf($member, $pdfOverrides);
                 $update = $pdo->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
                 $update->execute([$pdfPath, $id]);
                 redirect('success.php?id=' . $id);
@@ -187,6 +193,9 @@ const stepBadge3 = document.getElementById('stepBadge3');
 const photoInput = document.getElementById('photoInput');
 const photoPreview = document.getElementById('photoPreview');
 const ghanaCardInput = document.getElementById('ghanaCardInput');
+const registrationForm = document.getElementById('registrationForm');
+const DRAFT_KEY = 'mavis_registration_draft_v1';
+const STEP_KEY = 'mavis_registration_step_v1';
 
 function formatGhanaCard(value) {
   const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -215,7 +224,37 @@ function setStep(step) {
   stepBadge1.className = step === 1 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
   stepBadge2.className = step === 2 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
   stepBadge3.className = step === 3 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
+  localStorage.setItem(STEP_KEY, String(step));
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function saveDraft() {
+  const fields = registrationForm.querySelectorAll('input[name]');
+  const draft = {};
+  fields.forEach((field) => {
+    if (field.type === 'file') return;
+    draft[field.name] = field.value;
+  });
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function restoreDraft() {
+  const rawDraft = localStorage.getItem(DRAFT_KEY);
+  if (!rawDraft) return;
+  try {
+    const draft = JSON.parse(rawDraft);
+    const fields = registrationForm.querySelectorAll('input[name]');
+    fields.forEach((field) => {
+      if (field.type === 'file') return;
+      if (field.value.trim() !== '') return;
+      const savedValue = draft[field.name];
+      if (typeof savedValue === 'string') {
+        field.value = savedValue;
+      }
+    });
+  } catch (error) {
+    localStorage.removeItem(DRAFT_KEY);
+  }
 }
 
 nextBtn1.addEventListener('click', () => {
@@ -252,6 +291,18 @@ if (ghanaCardInput) {
   });
   ghanaCardInput.value = formatGhanaCard(ghanaCardInput.value);
 }
+
+restoreDraft();
+const savedStep = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
+if ([1, 2, 3].includes(savedStep)) {
+  setStep(savedStep);
+}
+
+registrationForm.querySelectorAll('input[name]').forEach((field) => {
+  if (field.type === 'file') return;
+  field.addEventListener('input', saveDraft);
+  field.addEventListener('change', saveDraft);
+});
 
 photoInput.addEventListener('change', (event) => {
   const file = event.target.files[0];

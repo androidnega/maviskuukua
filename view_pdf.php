@@ -18,11 +18,18 @@ if (!$member) {
 }
 
 try {
-    // Always regenerate so latest template/style changes are reflected immediately.
-    $filename = create_member_pdf($member);
-    $filePath = PDF_DIR . '/' . $filename;
-    $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
-    $update->execute([$filename, $id]);
+    $pdfOverrides = [];
+    if (isset($_SESSION['pdf_overrides'][$id]) && is_array($_SESSION['pdf_overrides'][$id])) {
+        $pdfOverrides = $_SESSION['pdf_overrides'][$id];
+    }
+    $existingPdf = trim((string)($member['pdf_path'] ?? ''));
+    $filePath = $existingPdf !== '' ? PDF_DIR . '/' . $existingPdf : '';
+    if ($pdfOverrides || $existingPdf === '' || !is_file($filePath)) {
+        $filename = create_member_pdf($member, $pdfOverrides);
+        $filePath = PDF_DIR . '/' . $filename;
+        $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
+        $update->execute([$filename, $id]);
+    }
 } catch (Throwable $e) {
     http_response_code(500);
     exit('PDF generation failed. Please retry or contact admin.');
