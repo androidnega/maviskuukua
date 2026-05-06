@@ -117,7 +117,7 @@ function photo_url_for_member(array $member): ?string {
                 </form>
                 <form method="post" action="delete_member.php" class="inline shrink-0" onsubmit="return confirm('Delete this member and related files?');">
                   <input type="hidden" name="id" value="<?=$m['id']?>">
-                  <button type="submit" class="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold">Del</button>
+                  <button type="submit" class="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold">Delete</button>
                 </form>
                 </div>
               </td>
