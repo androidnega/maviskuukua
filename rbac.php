@@ -39,6 +39,40 @@ function can_manage_staff_accounts(): bool {
     return is_super_admin() || is_coordinator();
 }
 
+/** Super admin only: remove coordinators and field officers (not self, not other super admins). */
+function staff_target_deletable_by_actor(array $target): bool {
+    if (!is_super_admin()) {
+        return false;
+    }
+    $tid = (int)($target['id'] ?? 0);
+    if ($tid <= 0 || $tid === (int)($_SESSION['admin_id'] ?? 0)) {
+        return false;
+    }
+    $role = (string)($target['role'] ?? '');
+
+    return $role === ROLE_COORDINATOR || $role === ROLE_FIELD_OFFICER;
+}
+
+/**
+ * Super admin: reset coordinator or field officer (not self).
+ * Coordinator: reset field officers only (not self).
+ */
+function staff_target_password_resettable_by_actor(array $target): bool {
+    $tid = (int)($target['id'] ?? 0);
+    if ($tid <= 0 || $tid === (int)($_SESSION['admin_id'] ?? 0)) {
+        return false;
+    }
+    $role = (string)($target['role'] ?? '');
+    if (is_super_admin()) {
+        return $role === ROLE_COORDINATOR || $role === ROLE_FIELD_OFFICER;
+    }
+    if (is_coordinator()) {
+        return $role === ROLE_FIELD_OFFICER;
+    }
+
+    return false;
+}
+
 function can_view_audit_and_logs(): bool {
     return is_super_admin() || is_coordinator();
 }
