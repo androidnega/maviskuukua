@@ -195,6 +195,7 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $pageW = 595;
     $pageH = 842;
     $margin = 28;
+    $contentW = $pageW - (2 * $margin);
     $brandBlue = '0.08 0.45 0.24';
     $mutedText = '0.22 0.27 0.34';
     $lineColor = '0.79 0.88 0.82';
@@ -269,37 +270,57 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $commands[] = '1 1 1 rg';
     $commands[] = sprintf('0 0 %.2f %.2f re f', $pageW, $pageH);
 
-    // Header
+    // Header — photo slot from page geometry (width fraction × portrait factor tied to page aspect).
+    $photoFrameW = $contentW * 0.24;
+    $pageAspect = $pageH / max($pageW, 1.0);
+    $slotPortrait = min(max(1.06, $pageAspect * 0.42), 1.38);
+    $photoFrameH = $photoFrameW * $slotPortrait;
+    $photoX = $pageW - $margin - $photoFrameW;
+    $photoTopY = $pageH - $margin - 12;
+    $photoY = $photoTopY - $photoFrameH;
+
     $titleX = $margin;
+    $headerRuleEndX = max($titleX + $contentW * 0.62, $photoX - 10);
+
     $addText($textBlock, $titleX, 774, 'F2', 21, $brandBlue, 'Membership Registration Form');
     $addText($textBlock, $titleX, 748, 'F1', 11, $mutedText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
     $commands[] = '0.69 0.83 0.73 RG';
-    $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $titleX, 738, $pageW - 146, 738);
+    $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $titleX, 738, $headerRuleEndX, 738);
     $addText($textBlock, $titleX, 713, 'F2', 10, $brandBlue, 'Reference No.: ' . member_value($pdfMember, 'membership_id'));
     $addText($textBlock, $titleX, 692, 'F2', 10, $brandBlue, 'Date Submitted: ' . pdf_date(member_value($pdfMember, 'created_at')));
 
-    // Photo
-    // Keep display box ratio aligned with generated JPEG (120:140) to avoid stretch.
-    $photoW = 103;
-    $photoH = 120;
-    $photoX = $pageW - $margin - $photoW;
-    $photoY = 670;
+    // Photo frame (letterboxed image drawn inside with uniform scale — see below).
     $commands[] = '1 1 1 rg';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $photoX, $photoY, $photoW, $photoH);
+    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $photoX, $photoY, $photoFrameW, $photoFrameH);
     $commands[] = '0.47 0.70 0.54 RG';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $photoX, $photoY, $photoW, $photoH);
+    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $photoX, $photoY, $photoFrameW, $photoFrameH);
     if (!$hasPhoto) {
-        $addText($textBlock, $photoX + 26, $photoY + 54, 'F2', 10, '0.42 0.42 0.42', 'No Photo');
+        $addText($textBlock, $photoX + ($photoFrameW / 2) - 22, $photoY + ($photoFrameH / 2) - 4, 'F2', 10, '0.42 0.42 0.42', 'No Photo');
     }
 
-    // Body cards (template-like structure, using your own data labels/values)
+    $drawW = $photoFrameW;
+    $drawH = $photoFrameH;
+    $drawX = $photoX;
+    $drawY = $photoY;
+    if ($hasPhoto && $jpegW > 0 && $jpegH > 0) {
+        $scale = min($photoFrameW / $jpegW, $photoFrameH / $jpegH);
+        $drawW = $jpegW * $scale;
+        $drawH = $jpegH * $scale;
+        $drawX = $photoX + ($photoFrameW - $drawW) / 2;
+        $drawY = $photoY + ($photoFrameH - $drawH) / 2;
+    }
+
+    // Body cards — vertical positions follow photo frame (no fixed row Y).
     $colGap = 14;
-    $colW = (($pageW - (2 * $margin)) - $colGap) / 2;
+    $colW = ($contentW - $colGap) / 2;
     $leftX = $margin;
     $rightX = $margin + $colW + $colGap;
-    $row1Y = 640;
-    $row2Y = 448;
-    $cardH = 172;
+    $cardH = min(172.0, max(140.0, ($photoY - 2 * $margin) * 0.28));
+    $cardRowGap = max(16.0, $margin * 0.55);
+    $rowGapBelowPhoto = max(18.0, $margin * 0.65);
+    $row1Y = $photoY - $rowGapBelowPhoto;
+    $row2Y = $row1Y - $cardH - $cardRowGap;
+    $membershipTopY = $row2Y - $cardH - $cardRowGap;
 
     $drawSection(
         $commands,
@@ -365,14 +386,16 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
         ]
     );
 
+    $membershipCardH = min(124.0, max(108.0, ($membershipTopY - $margin - 36) * 0.85));
+
     $drawSection(
         $commands,
         $textBlock,
         $addText,
         $margin,
-        256,
+        $membershipTopY,
         $pageW - (2 * $margin),
-        124,
+        $membershipCardH,
         '5. Membership Details',
         [
             ['Year Joined', member_value($pdfMember, 'year_joined')],
@@ -385,7 +408,7 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
 
     if ($hasPhoto) {
         $commands[] = 'q';
-        $commands[] = sprintf('%.2f 0 0 %.2f %.2f %.2f cm', $photoW, $photoH, $photoX, $photoY);
+        $commands[] = sprintf('%.4f 0 0 %.4f %.4f %.4f cm', $drawW, $drawH, $drawX, $drawY);
         $commands[] = '/Im1 Do';
         $commands[] = 'Q';
     }
