@@ -230,11 +230,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('manage_staff.php');
     }
 
-    // Create account (default)
+    if ($action !== 'create') {
+        flash('admin_notice', 'Invalid request.');
+        redirect('manage_staff.php');
+    }
+
+    // Create account — password generated server-side and sent only via OTP SMS
     $username = trim((string)($_POST['username'] ?? ''));
-    $password = (string)($_POST['password'] ?? '');
     $phoneRaw = trim((string)($_POST['phone'] ?? ''));
     $roleIn = trim((string)($_POST['role'] ?? ''));
+    $password = random_staff_password(14);
 
     $allowedRole = ROLE_FIELD_OFFICER;
     if (is_super_admin()) {
@@ -246,8 +251,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $err = null;
     if ($username === '' || strlen($username) < 3) {
         $err = 'Username must be at least 3 characters.';
-    } elseif ($password === '' || strlen($password) < 8) {
-        $err = 'Password must be at least 8 characters.';
     } else {
         $dup = $pdo->prepare('SELECT id FROM admins WHERE username = ?');
         $dup->execute([$username]);
@@ -345,40 +348,58 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
   </div>
   <?php endif; ?>
 
-  <div class="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
-    <div class="bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
-      <h2 class="font-bold text-lg text-slate-900">Create account</h2>
-      <p class="text-xs text-slate-500 mt-1">Each staff user has a numeric ID (shown in the directory). Credentials are sent by Arkesel OTP SMS.</p>
-      <form method="post" class="mt-4 space-y-4">
+  <div class="mt-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h2 class="font-bold text-lg text-slate-900">Directory</h2>
+      <p class="text-xs text-slate-500 mt-1">Each staff user has a numeric ID. Open <strong>Create staff account</strong> to add someone; they receive username and a generated password by Arkesel OTP SMS only.</p>
+    </div>
+    <button type="button" id="btn-open-create-staff" class="shrink-0 px-5 py-3 bg-slate-950 text-white font-bold hover:bg-slate-800 text-sm w-full sm:w-auto">
+      Create staff account
+    </button>
+  </div>
+
+  <style>#create-staff-modal::backdrop{background:rgba(15,23,42,.45)}</style>
+  <dialog id="create-staff-modal" class="max-w-lg w-[calc(100%-2rem)] rounded-lg border border-slate-200 shadow-2xl p-0">
+    <form method="post" class="flex flex-col max-h-[90vh]">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50">
+        <div>
+          <h3 class="font-bold text-slate-900">Create staff account</h3>
+          <p class="text-xs text-slate-500 mt-1">A secure password is generated for you and sent to the phone below via OTP SMS only.</p>
+        </div>
+        <button type="button" id="btn-close-create-staff" class="text-slate-500 hover:text-slate-800 p-1" aria-label="Close">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="px-5 py-4 space-y-4 overflow-y-auto">
         <input type="hidden" name="staff_action" value="create">
         <?php if (is_super_admin()): ?>
         <label class="block text-sm font-semibold text-slate-700">Role</label>
-        <select name="role" class="w-full  border border-slate-200 p-3">
+        <select name="role" class="w-full border border-slate-200 p-3">
           <option value="<?=h(ROLE_FIELD_OFFICER)?>">Field officer</option>
           <option value="<?=h(ROLE_COORDINATOR)?>">Coordinator</option>
         </select>
         <?php else: ?>
         <input type="hidden" name="role" value="<?=h(ROLE_FIELD_OFFICER)?>">
-        <p class="text-sm text-slate-600">New accounts are created as <strong>field officers</strong>.</p>
+        <p class="text-sm text-slate-600">New account role: <strong>field officer</strong>.</p>
         <?php endif; ?>
         <label class="block">
           <span class="text-sm font-semibold text-slate-700">Username</span>
-          <input name="username" required class="mt-1 w-full  border border-slate-200 p-3" autocomplete="off">
-        </label>
-        <label class="block">
-          <span class="text-sm font-semibold text-slate-700">Temporary password</span>
-          <input name="password" type="text" required class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm" autocomplete="off">
+          <input name="username" required minlength="3" class="mt-1 w-full border border-slate-200 p-3" autocomplete="off">
         </label>
         <label class="block">
           <span class="text-sm font-semibold text-slate-700">Phone (OTP)</span>
-          <input name="phone" required placeholder="0241234567" class="mt-1 w-full  border border-slate-200 p-3">
+          <input name="phone" type="tel" required placeholder="0241234567" class="mt-1 w-full border border-slate-200 p-3" autocomplete="off">
         </label>
-        <button type="submit" class="px-6 py-3  bg-slate-950 text-white font-bold hover:bg-slate-800">Create &amp; send OTP</button>
-      </form>
-    </div>
+      </div>
+      <div class="px-5 py-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end bg-white">
+        <button type="button" id="btn-cancel-create-staff" class="px-4 py-2 border border-slate-300 bg-white text-slate-800 text-sm font-semibold hover:bg-slate-50">Cancel</button>
+        <button type="submit" class="px-5 py-2 bg-slate-950 text-white font-bold hover:bg-slate-800 text-sm">Create &amp; send OTP</button>
+      </div>
+    </form>
+  </dialog>
 
-    <div class="bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
-      <h2 class="font-bold text-lg text-slate-900">Directory</h2>
+  <div class="mt-6 bg-white border border-slate-200 p-5 sm:p-6 min-w-0">
+      <h3 class="sr-only">Staff directory table</h3>
 
       <div class="mt-4 xl:hidden space-y-3">
         <?php foreach ($staff as $s): ?>
@@ -512,7 +533,20 @@ $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordina
           </tbody>
         </table>
       </div>
-    </div>
   </div>
 </div>
+<script>
+(function () {
+  var dlg = document.getElementById('create-staff-modal');
+  if (!dlg || !dlg.showModal) return;
+  function openM() { dlg.showModal(); }
+  function closeM() { dlg.close(); }
+  document.getElementById('btn-open-create-staff')?.addEventListener('click', openM);
+  document.getElementById('btn-close-create-staff')?.addEventListener('click', closeM);
+  document.getElementById('btn-cancel-create-staff')?.addEventListener('click', closeM);
+  dlg.addEventListener('click', function (e) {
+    if (e.target === dlg) closeM();
+  });
+})();
+</script>
 <?php render_layout_end(); ?>
