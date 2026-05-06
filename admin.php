@@ -65,12 +65,18 @@ if (is_field_officer()) {
 ?>
 <?php render_layout_start('Dashboard', 'dashboard'); ?>
 <div class="max-w-7xl mx-auto">
-  <div class="flex items-center justify-between gap-3 flex-wrap">
-    <div>
+  <div class="flex items-start justify-between gap-3 flex-wrap">
+    <div class="min-w-0 flex-1">
       <h1 class="text-3xl font-black text-slate-900"><?=h($dashTitle)?></h1>
       <p class="text-slate-500 text-sm">Membership submissions overview</p>
+      <div class="mt-3 inline-flex items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3 py-2 text-slate-600 shadow-sm">
+        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <i class="fa-solid fa-video text-sm mavis-surveillance-icon-breathe"></i>
+        </span>
+        <span class="text-xs font-medium leading-tight">24/7 monitored session</span>
+      </div>
     </div>
-    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full <?=h($accentBar)?> text-sm font-semibold border">
+    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full <?=h($accentBar)?> text-sm font-semibold border shrink-0">
       <i class="fa-solid fa-arrow-trend-up"></i>
       <?=$trendPercent >= 0 ? '+' : ''?><?=$trendPercent?>% this week
     </span>
