@@ -30,9 +30,11 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
   <div class="bg-white rounded-3xl border p-6 md:p-8 mt-4 shadow-sm">
     <div class="flex flex-col md:flex-row md:items-center gap-5">
       <?php if($photoUrl): ?>
-        <img src="<?=h($photoUrl)?>" class="w-28 h-28 md:w-36 md:h-36 rounded-2xl object-cover border" alt="Member photo">
+        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl p-1.5 border border-slate-300 bg-white shadow-sm">
+          <img src="<?=h($photoUrl)?>" class="w-full h-full rounded-xl object-cover object-top bg-slate-50" alt="Member photo">
+        </div>
       <?php else: ?>
-        <div class="w-28 h-28 md:w-36 md:h-36 rounded-2xl border bg-slate-100 text-slate-500 flex items-center justify-center text-3xl"><i class="fa-solid fa-user"></i></div>
+        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl border border-slate-300 bg-slate-100 text-slate-500 flex items-center justify-center text-3xl"><i class="fa-solid fa-user"></i></div>
       <?php endif; ?>
       <div class="flex-1">
         <h1 class="text-3xl font-black"><?=h($m['firstname'].' '.$m['surname'])?></h1>
