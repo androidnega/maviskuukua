@@ -44,6 +44,7 @@ function tracking_public_hit(string $path): void {
 }
 
 function tracking_registration_funnel_touch(): void {
+    tracking_public_hit('register');
     try {
         $pdo = db();
         $anon = tracking_anon_cookie();
@@ -83,6 +84,7 @@ function tracking_registration_attach_member(int $memberId): void {
 }
 
 function tracking_success_page_view(int $memberId): void {
+    tracking_public_hit('success');
     try {
         $pdo = db();
         $now = date('c');

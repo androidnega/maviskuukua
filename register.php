@@ -3,7 +3,6 @@ require 'config.php';
 require_once __DIR__ . '/tracking.php';
 require 'pdf.php';
 
-tracking_public_hit('register');
 tracking_registration_funnel_touch();
 $errors = [];
 $old = [];

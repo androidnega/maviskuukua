@@ -11,7 +11,6 @@ if (!$m) {
     redirect('register.php');
 }
 
-tracking_public_hit('success');
 tracking_success_page_view($id);
 
 $pendingId = isset($_SESSION['pending_pdf_member_id']) ? (int)$_SESSION['pending_pdf_member_id'] : 0;
