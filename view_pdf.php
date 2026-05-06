@@ -12,28 +12,25 @@ $stmt = db()->prepare('SELECT * FROM members WHERE id = ?');
 $stmt->execute([$id]);
 $member = $stmt->fetch();
 
-if (!$member || !$member['pdf_path']) {
+if (!$member) {
     http_response_code(404);
     exit('PDF not found.');
 }
 
-$filename = basename((string)$member['pdf_path']);
-$filePath = PDF_DIR . '/' . $filename;
-if (!is_file($filePath)) {
-    try {
-        $filename = create_member_pdf($member);
-        $filePath = PDF_DIR . '/' . $filename;
-        $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
-        $update->execute([$filename, $id]);
-    } catch (Throwable $e) {
-        http_response_code(500);
-        exit('PDF generation failed. Please retry or contact admin.');
-    }
+try {
+    // Always regenerate so latest template/style changes are reflected immediately.
+    $filename = create_member_pdf($member);
+    $filePath = PDF_DIR . '/' . $filename;
+    $update = db()->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
+    $update->execute([$filename, $id]);
+} catch (Throwable $e) {
+    http_response_code(500);
+    exit('PDF generation failed. Please retry or contact admin.');
+}
 
-    if (!is_file($filePath)) {
-        http_response_code(500);
-        exit('PDF generation failed. Please retry or contact admin.');
-    }
+if (!is_file($filePath)) {
+    http_response_code(500);
+    exit('PDF generation failed. Please retry or contact admin.');
 }
 
 $download = isset($_GET['download']) && $_GET['download'] === '1';

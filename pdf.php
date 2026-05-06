@@ -26,6 +26,12 @@ function create_photo_jpeg_binary(array $member): ?string {
     if ($raw === false) {
         return null;
     }
+    $mime = mime_content_type($fullPath) ?: '';
+
+    // If source is already JPEG, embed directly to guarantee display even without GD.
+    if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
+        return $raw;
+    }
 
     if (!function_exists('imagecreatefromstring') || !function_exists('imagecreatetruecolor')) {
         return null;
@@ -89,23 +95,19 @@ function create_member_pdf(array $member): string {
             ['Position Held', member_value($member, 'positions_held')],
             ['Profession', member_value($member, 'profession')],
         ],
-        'Residential Address' => [
-            ['Residential Address', 'N/A'],
-            ['City', member_value($member, 'branch')],
-        ],
-        'Emergency Contact' => [
-            ['Contact Name', member_value($member, 'proposer_name')],
-            ['Contact Phone', member_value($member, 'proposer_phone_no')],
-            ['Contact Party ID', member_value($member, 'proposer_party_id')],
+        'Proposer Information' => [
+            ['Proposer Name', member_value($member, 'proposer_name')],
+            ['Proposer Phone', member_value($member, 'proposer_phone_no')],
+            ['Proposer Party ID', member_value($member, 'proposer_party_id')],
         ],
     ];
 
     $pageW = 595;
     $pageH = 842;
     $margin = 42;
-    $accentBlue = '0.08 0.20 0.78';
+    $accentBlue = '0.06 0.52 0.27';
     $darkText = '0.12 0.12 0.12';
-    $lightBorder = '0.86 0.88 0.91';
+    $lightBorder = '0.84 0.88 0.86';
 
     $commands = [];
     $textBlock = [];
@@ -122,16 +124,18 @@ function create_member_pdf(array $member): string {
     };
 
     // Header
-    $addText($textBlock, $margin + 92, 792, 'F2', 20, $accentBlue, 'Membership Registration Form');
-    $addText($textBlock, $margin, 770, 'F1', 11, $darkText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
-    $addText($textBlock, $margin, 754, 'F2', 10, $darkText, 'Reference Number: ' . member_value($member, 'membership_id'));
-    $addText($textBlock, $margin + 260, 754, 'F1', 10, $darkText, 'Date Submitted: ' . pdf_date(member_value($member, 'created_at')));
+    $addText($textBlock, $margin, 794, 'F2', 20, $accentBlue, 'Membership Registration Form');
+    $addText($textBlock, $margin, 772, 'F1', 11, $darkText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
+    $addText($textBlock, $margin, 752, 'F2', 10, $darkText, 'Reference Number: ' . member_value($member, 'membership_id'));
+    $addText($textBlock, $margin + 250, 752, 'F1', 10, $darkText, 'Date Submitted: ' . pdf_date(member_value($member, 'created_at')));
+    $commands[] = '0.82 0.90 0.85 RG';
+    $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $margin, 744, $pageW - $margin, 744);
 
     // Passport photo box
     $photoW = 96;
     $photoH = 112;
     $photoX = $pageW - $margin - $photoW;
-    $photoY = 708;
+    $photoY = 700;
     $commands[] = '0.65 0.68 0.72 RG';
     $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $photoX, $photoY, $photoW, $photoH);
     if (!$hasPhoto) {
@@ -139,14 +143,19 @@ function create_member_pdf(array $member): string {
     }
 
     // Form-like sections
-    $y = 686;
+    $y = 700;
     $lineEnd = $pageW - $margin;
-    $sectionGap = 13;
+    $sectionGap = 28;
     foreach ($sections as $title => $rows) {
-        $addText($textBlock, $margin, $y, 'F2', 11, $darkText, $title);
-        $y -= 8;
+        $sectionHeight = 14 + (count($rows) * 18) + 14;
+        $commands[] = '0.97 0.99 0.98 rg';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $margin - 4, $y - $sectionHeight + 4, ($pageW - 2 * $margin) + 8, $sectionHeight);
+        $commands[] = '0.88 0.93 0.90 RG';
+        $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $margin - 4, $y - $sectionHeight + 4, ($pageW - 2 * $margin) + 8, $sectionHeight);
+        $addText($textBlock, $margin, $y, 'F2', 12, $accentBlue, $title);
+        $y -= 12;
         foreach ($rows as [$label, $value]) {
-            $y -= 16;
+            $y -= 19;
             $safeValue = $value !== '' ? $value : 'N/A';
             $text = $label . ': ' . $safeValue;
             $addText($textBlock, $margin + 8, $y + 2, 'F1', 10, $darkText, $text);
@@ -156,14 +165,8 @@ function create_member_pdf(array $member): string {
         $y -= $sectionGap;
     }
 
-    // Declaration and footer
-    $addText($textBlock, $margin, $y, 'F2', 11, $accentBlue, 'Declaration');
-    $y -= 16;
-    $addText($textBlock, $margin, $y, 'F1', 10, $darkText, 'I confirm that the information provided above is true and correct.');
-    $y -= 22;
-    $addText($textBlock, $margin, $y, 'F1', 10, $darkText, 'Applicant Signature: ______________________');
-    $addText($textBlock, $margin + 300, $y, 'F1', 10, $darkText, 'Date: ' . pdf_date(member_value($member, 'created_at')));
-    $addText($textBlock, $margin, 22, 'F1', 9, '0.45 0.45 0.45', 'Generated Registration PDF');
+    // Light watermark-style site footer (outside main content hierarchy)
+    $addText($textBlock, $pageW - 190, 14, 'F1', 8, '0.72 0.72 0.72', 'www.kuukuacares.com');
 
     if ($hasPhoto) {
         $commands[] = 'q';

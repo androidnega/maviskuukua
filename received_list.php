@@ -92,6 +92,7 @@ function photo_url_for_member(array $member): ?string {
                 <a class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" href="member.php?id=<?=$m['id']?>">Details</a>
                 <?php if($m['pdf_path']): ?>
                   <a class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-semibold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a>
+                  <a class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" target="_blank" href="print_pdf.php?id=<?=$m['id']?>">Print</a>
                 <?php endif; ?>
                 <form method="post" action="regenerate_pdf.php" class="inline">
                   <input type="hidden" name="id" value="<?=$m['id']?>">

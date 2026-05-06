@@ -30,6 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($errors['phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $old['phone_no'])) $errors['phone_no'] = 'Enter a valid Ghana phone number.';
     if (!isset($errors['proposer_phone_no']) && !preg_match('/^(\+233|0)[235]\d{8}$/', $old['proposer_phone_no'])) $errors['proposer_phone_no'] = 'Enter a valid proposer phone number.';
     if (!isset($errors['year_joined']) && !preg_match('/^\d{4}$/', $old['year_joined'])) $errors['year_joined'] = 'Year joined must be a 4-digit year.';
+    if (!isset($errors['voter_id_no']) && !preg_match('/^[A-Z0-9]{8,15}$/i', $old['voter_id_no'])) $errors['voter_id_no'] = 'Voter ID format should be letters/numbers only (8-15 chars).';
+    if (!isset($errors['ghana_card_no']) && !preg_match('/^GHA-\d{9}-\d$/i', $old['ghana_card_no'])) $errors['ghana_card_no'] = 'Ghana Card format should be GHA-123456789-1.';
     if (($old['date_of_birth'] ?? '') && strtotime($old['date_of_birth']) > strtotime('-15 years')) $errors['date_of_birth'] = 'Applicant must be at least 15 years old.';
     $photoPath = null;
     if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
@@ -106,30 +108,38 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
     <?php if(isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-red-50 text-red-700 border border-red-200"><?=h($errors['general'])?></div><?php endif; ?>
     <?php if($errors && !isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-200">Please correct the highlighted fields before continuing.</div><?php endif; ?>
     <form method="post" enctype="multipart/form-data" class="mt-6 sm:mt-8 space-y-6 sm:space-y-8" id="registrationForm">
-      <div class="flex items-center gap-2 text-sm">
+      <div class="flex items-center gap-2 text-sm flex-wrap">
         <span id="stepBadge1" class="px-3 py-1 rounded-full bg-slate-950 text-white">Step 1</span>
         <span id="stepBadge2" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 2</span>
+        <span id="stepBadge3" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 3</span>
       </div>
-      <section id="step1"><h2 class="font-bold text-lg mb-4">Member Information</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <section id="step1"><h2 class="font-bold text-lg mb-4">Personal Details</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label>Firstname *<input name="firstname" value="<?=val('firstname',$old)?>" placeholder="Enter first name" class="w-full mt-1 rounded-xl border p-3" required><?=err('firstname',$errors)?></label>
         <label>Surname *<input name="surname" value="<?=val('surname',$old)?>" placeholder="Enter surname" class="w-full mt-1 rounded-xl border p-3" required><?=err('surname',$errors)?></label>
         <label>Place of birth *<input name="place_of_birth" value="<?=val('place_of_birth',$old)?>" placeholder="e.g. Takoradi" class="w-full mt-1 rounded-xl border p-3" required><?=err('place_of_birth',$errors)?></label>
         <label>Date of birth *<input type="date" name="date_of_birth" value="<?=val('date_of_birth',$old)?>" class="w-full mt-1 rounded-xl border p-3" required><?=err('date_of_birth',$errors)?></label>
         <label>Branch *<input name="branch" value="<?=val('branch',$old)?>" placeholder="Enter branch name" class="w-full mt-1 rounded-xl border p-3" required><?=err('branch',$errors)?></label>
         <label>Phone no *<input name="phone_no" value="<?=val('phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('phone_no',$errors)?></label>
+      </div>
+      <div class="mt-6">
+        <button type="button" id="nextBtn1" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
+      </div>
+      </section>
+      <section id="step2" class="hidden"><h2 class="font-bold text-lg mb-4">Membership Details</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label>Year joined *<input name="year_joined" value="<?=val('year_joined',$old)?>" placeholder="2026" class="w-full mt-1 rounded-xl border p-3" required><?=err('year_joined',$errors)?></label>
-        <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="Enter voter ID number" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
-        <label>Ghana card no *<input name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="Enter Ghana card number" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
-        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="e.g. MKB-2026-ABCD1234" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
+        <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="BC12345678" pattern="[A-Za-z0-9]{8,15}" title="Use 8-15 letters/numbers only." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
+        <label>Ghana card no *<input name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="GHA-123456789-1" pattern="GHA-[0-9]{9}-[0-9]" title="Use Ghana Card format: GHA-123456789-1" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
+        <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
         <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="w-full mt-1 rounded-xl border p-3" required><?=err('positions_held',$errors)?></label>
         <label>Languages *<input name="languages" value="<?=val('languages',$old)?>" placeholder="e.g. English, Fante" class="w-full mt-1 rounded-xl border p-3" required><?=err('languages',$errors)?></label>
         <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="w-full mt-1 rounded-xl border p-3" required><?=err('profession',$errors)?></label>
       </div>
-      <div class="mt-6">
-        <button type="button" id="nextBtn" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
+      <div class="mt-6 flex flex-col sm:flex-row gap-3">
+        <button type="button" id="backBtn2" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
+        <button type="button" id="nextBtn2" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Next</button>
       </div>
       </section>
-      <section id="step2" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information</h2><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <section id="step3" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information</h2><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <label>Proposer's name *<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_name',$errors)?></label>
         <label>Proposer's party ID *<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_party_id',$errors)?></label>
         <label>Proposer's phone no *<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_phone_no',$errors)?></label>
@@ -140,7 +150,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <img id="photoPreview" class="mt-3 w-36 h-36 rounded-xl object-cover border hidden" alt="Preview">
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        <button type="button" id="backBtn" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
+        <button type="button" id="backBtn3" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
         <button class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Submit Registration</button>
       </div>
       </section>
@@ -150,23 +160,28 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
 <script>
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
-const nextBtn = document.getElementById('nextBtn');
-const backBtn = document.getElementById('backBtn');
+const step3 = document.getElementById('step3');
+const nextBtn1 = document.getElementById('nextBtn1');
+const nextBtn2 = document.getElementById('nextBtn2');
+const backBtn2 = document.getElementById('backBtn2');
+const backBtn3 = document.getElementById('backBtn3');
 const stepBadge1 = document.getElementById('stepBadge1');
 const stepBadge2 = document.getElementById('stepBadge2');
+const stepBadge3 = document.getElementById('stepBadge3');
 const photoInput = document.getElementById('photoInput');
 const photoPreview = document.getElementById('photoPreview');
 
 function setStep(step) {
-  const onStep1 = step === 1;
-  step1.classList.toggle('hidden', !onStep1);
-  step2.classList.toggle('hidden', onStep1);
-  stepBadge1.className = onStep1 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
-  stepBadge2.className = onStep1 ? 'px-3 py-1 rounded-full bg-slate-200 text-slate-600' : 'px-3 py-1 rounded-full bg-slate-950 text-white';
+  step1.classList.toggle('hidden', step !== 1);
+  step2.classList.toggle('hidden', step !== 2);
+  step3.classList.toggle('hidden', step !== 3);
+  stepBadge1.className = step === 1 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
+  stepBadge2.className = step === 2 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
+  stepBadge3.className = step === 3 ? 'px-3 py-1 rounded-full bg-slate-950 text-white' : 'px-3 py-1 rounded-full bg-slate-200 text-slate-600';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-nextBtn.addEventListener('click', () => {
+nextBtn1.addEventListener('click', () => {
   const requiredFields = step1.querySelectorAll('input[required]');
   for (const field of requiredFields) {
     if (!field.checkValidity()) {
@@ -177,7 +192,19 @@ nextBtn.addEventListener('click', () => {
   setStep(2);
 });
 
-backBtn.addEventListener('click', () => setStep(1));
+nextBtn2.addEventListener('click', () => {
+  const requiredFields = step2.querySelectorAll('input[required]');
+  for (const field of requiredFields) {
+    if (!field.checkValidity()) {
+      field.reportValidity();
+      return;
+    }
+  }
+  setStep(3);
+});
+
+backBtn2.addEventListener('click', () => setStep(1));
+backBtn3.addEventListener('click', () => setStep(2));
 
 photoInput.addEventListener('change', (event) => {
   const file = event.target.files[0];
