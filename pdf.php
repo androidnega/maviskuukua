@@ -176,7 +176,6 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
         array $rows
     ) use ($brandBlue, $mutedText, $lineColor): void {
         $headerH = 26.0;
-        $iconSize = 16.0;
         $bodyTop = $topY - $headerH;
         $bodyBottom = $topY - $height;
 
@@ -189,12 +188,7 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
         $commands[] = '0.66 0.82 0.70 RG';
         $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $x, $bodyTop, $width, $headerH);
 
-        $iconX = $x + 8;
-        $iconY = $topY - 20;
-        $commands[] = $brandBlue . ' rg';
-        $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $iconX, $iconY, $iconSize, $iconSize);
-        $addText($textBlock, $iconX + 5, $iconY + 4, 'F2', 9, '1 1 1', '*');
-        $addText($textBlock, $x + 30, $topY - 18, 'F2', 11, $brandBlue, strtoupper($title));
+        $addText($textBlock, $x + 10, $topY - 18, 'F2', 11, $brandBlue, strtoupper($title));
 
         $rowY = $bodyTop - 14;
         $rowLineGap = 19;
@@ -209,18 +203,11 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     };
 
     // Page background
-    $commands[] = '0.96 0.99 0.97 rg';
+    $commands[] = '1 1 1 rg';
     $commands[] = sprintf('0 0 %.2f %.2f re f', $pageW, $pageH);
 
     // Header
-    $logoX = $margin;
-    $logoY = 730;
-    $logoR = 26;
-    $commands[] = '0.89 0.96 0.91 rg';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re f', $logoX, $logoY, $logoR * 2, $logoR * 2);
-    $commands[] = '0.57 0.77 0.62 RG';
-    $commands[] = sprintf('%.2f %.2f %.2f %.2f re S', $logoX, $logoY, $logoR * 2, $logoR * 2);
-    $titleX = $logoX + 68;
+    $titleX = $margin;
     $addText($textBlock, $titleX, 774, 'F2', 21, $brandBlue, 'Membership Registration Form');
     $addText($textBlock, $titleX, 748, 'F1', 11, $mutedText, 'Hon. Mavis Kuukua Bissue | Ahanta West');
     $commands[] = '0.69 0.83 0.73 RG';
