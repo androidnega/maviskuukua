@@ -259,7 +259,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
     <p class="text-slate-500 mt-2">Complete the form below. Fields marked required must be filled.</p>
     <?php if(isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-red-50 text-red-700 border border-red-200"><?=h($errors['general'])?></div><?php endif; ?>
     <?php if($errors && !isset($errors['general'])): ?><div class="mt-4 p-4 rounded-xl bg-amber-50 text-amber-800 border border-amber-200">Please correct the highlighted fields before continuing.</div><?php endif; ?>
-    <form method="post" enctype="multipart/form-data" class="mt-6 sm:mt-8 space-y-6 sm:space-y-8" id="registrationForm">
+    <form method="post" enctype="multipart/form-data" class="mt-6 sm:mt-8 space-y-6 sm:space-y-8" id="registrationForm" novalidate>
       <div class="flex items-center gap-2 text-sm flex-wrap">
         <span id="stepBadge1" class="px-3 py-1 rounded-full bg-slate-950 text-white">Step 1</span>
         <span id="stepBadge2" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 2</span>
@@ -329,7 +329,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
         <button type="button" id="backBtn3" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
-        <button class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Submit Registration</button>
+        <button type="submit" id="submitRegistrationBtn" class="w-full sm:w-auto px-8 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-800">Submit Registration</button>
       </div>
       </section>
     </form>
@@ -695,7 +695,58 @@ photoInput.addEventListener('change', (event) => {
   showPhotoPreview(f);
 });
 
-registrationForm.addEventListener('submit', async (e) => {
+async function submitRegistrationViaFetch() {
+  const fd = new FormData(registrationForm);
+  fd.set('photo', registrationPhotoFile, registrationPhotoFile.name || 'selfie.jpg');
+  const submitBtn = document.getElementById('submitRegistrationBtn');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const res = await fetch(registrationForm.action || window.location.pathname, {
+      method: 'POST',
+      body: fd,
+      credentials: 'same-origin',
+      redirect: 'follow',
+    });
+    const url = res.url || '';
+    if (res.redirected || url.includes('success.php')) {
+      clearRegistrationDraftStorage();
+      window.location.assign(url);
+      return;
+    }
+    const text = await res.text();
+    document.open();
+    document.write(text);
+    document.close();
+  } catch (err) {
+    alert('Could not submit the photo. Try choosing a file from your device instead.');
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+registrationForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  for (const field of step1.querySelectorAll('input[required]')) {
+    if (!field.checkValidity()) {
+      setStep(1);
+      field.reportValidity();
+      return;
+    }
+  }
+  for (const field of step2.querySelectorAll('input[required]')) {
+    if (!field.checkValidity()) {
+      setStep(2);
+      field.reportValidity();
+      return;
+    }
+  }
+  if (step2.querySelectorAll('input[name="languages[]"]:checked').length === 0) {
+    setStep(2);
+    alert('Please select at least one language.');
+    return;
+  }
+
   if ((!photoInput.files || photoInput.files.length === 0) && registrationPhotoFile) {
     setPhotoFile(registrationPhotoFile);
   }
@@ -707,33 +758,11 @@ registrationForm.addEventListener('submit', async (e) => {
     photoInput.files[0].size > 0;
 
   if (!hasFile && registrationPhotoFile && registrationPhotoFile.size > 0) {
-    e.preventDefault();
-    const fd = new FormData(registrationForm);
-    fd.set('photo', registrationPhotoFile, registrationPhotoFile.name || 'selfie.jpg');
-    try {
-      const res = await fetch(registrationForm.action || window.location.pathname, {
-        method: 'POST',
-        body: fd,
-        credentials: 'same-origin',
-        redirect: 'follow',
-      });
-      if (res.redirected && res.url) {
-        clearRegistrationDraftStorage();
-        window.location.href = res.url;
-        return;
-      }
-      const text = await res.text();
-      document.open();
-      document.write(text);
-      document.close();
-    } catch (err) {
-      alert('Could not submit the photo. Try choosing a file from your device instead.');
-    }
+    submitRegistrationViaFetch();
     return;
   }
 
   if (!hasFile) {
-    e.preventDefault();
     photoInput.setCustomValidity('Please upload a photo or use Take selfie.');
     setStep(3);
     photoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -744,6 +773,7 @@ registrationForm.addEventListener('submit', async (e) => {
 
   photoInput.setCustomValidity('');
   clearRegistrationDraftStorage();
+  HTMLFormElement.prototype.submit.call(registrationForm);
 });
 </script>
 </body></html>
