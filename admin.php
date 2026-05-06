@@ -78,7 +78,7 @@ if (is_field_officer()) {
 }
 ?>
 <?php render_layout_start('Dashboard', 'dashboard'); ?>
-<div class="max-w-7xl mx-auto">
+<div class="w-full">
   <div class="flex items-start justify-between gap-3 flex-wrap">
     <div class="min-w-0 flex-1">
       <h1 class="text-3xl font-black text-slate-900"><?=h($dashTitle)?></h1>

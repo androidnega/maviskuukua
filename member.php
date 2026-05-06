@@ -29,7 +29,7 @@ $safeMembershipId = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$m['membership_
 $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_photo.jpg';
 ?>
 <?php render_layout_start('Member Details', 'received_list'); ?>
-<div class="max-w-6xl mx-auto">
+<div class="w-full">
   <a href="received_list.php" class="text-sm text-slate-600"><i class="fa-solid fa-arrow-left mr-1"></i>Back to registrations</a>
   <div class="bg-white  border border-slate-200 p-6 md:p-8 mt-4">
     <?php if (!empty($m['deleted_at'])): ?>

@@ -292,13 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if ($otpResult['ok']) {
-            $del = $otpResult['delivery'] ?? 'otp_api';
-            flash(
-                'admin_notice',
-                $del === 'sms_fallback'
-                    ? 'New password saved. Login details sent by SMS (managed OTP API unavailable; standard SMS path used).'
-                    : 'New password saved and OTP SMS sent with login details.'
-            );
+            flash('admin_notice', 'New password saved. Login details sent by SMS.');
         } else {
             flash('admin_notice', 'Password was reset but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Set a new password again or share securely.');
         }
@@ -360,13 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if ($otpResult['ok']) {
-            $del = $otpResult['delivery'] ?? 'otp_api';
-            flash(
-                'admin_notice',
-                $del === 'sms_fallback'
-                    ? 'Account created. Credentials sent by SMS (managed OTP API failed; standard SMS API used — same balance as your other apps).'
-                    : 'Account created and OTP SMS dispatched via Arkesel.'
-            );
+            flash('admin_notice', 'Account created. Credentials sent by SMS.');
         } else {
             flash('admin_notice', 'Account created, but OTP SMS failed: ' . ($otpResult['error'] ?? 'unknown') . '. Share credentials securely out of band.');
         }
@@ -394,7 +382,7 @@ if (is_super_admin()) {
 $coordinatorPending = is_coordinator() ? staff_pending_removal_rows_for_coordinator($pdo, $actorId) : [];
 ?>
 <?php render_layout_start('Staff Accounts', 'manage_staff'); ?>
-<div class="max-w-6xl mx-auto">
+<div class="w-full">
   <h1 class="text-3xl font-black text-slate-900">Staff accounts</h1>
   <p class="text-slate-500 mt-1 text-sm"><?= is_super_admin()
     ? 'Super admin: create accounts, reset passwords. Coordinators: delete immediately. Field officers: default workflow is request removal then coordinator approval — or use Force delete (override) to remove immediately (fully audited).'

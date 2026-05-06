@@ -65,7 +65,7 @@ $tabLink = function (string $t) use ($tab): string {
 };
 ?>
 <?php render_layout_start('Audit & Logs', 'audit'); ?>
-<div class="max-w-7xl mx-auto">
+<div class="w-full">
   <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">Audit &amp; logs</h1>
     <p class="text-slate-500 mt-1 text-sm">Exports exclude legacy chat actions.</p>

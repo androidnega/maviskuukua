@@ -19,13 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Mavis test OTP. Your code: %otp_code% — If you received this, Arkesel OTP is configured correctly.';
         $result = arkesel_otp_generate($pdo, $pn, $msg);
         if ($result['ok']) {
-            $del = $result['delivery'] ?? 'otp_api';
-            flash(
-                'admin_notice',
-                $del === 'sms_fallback'
-                    ? 'Test SMS sent via standard SMS API (managed OTP endpoint failed first; message includes a generated code). Check your phone.'
-                    : 'Test submitted successfully. Check the phone for the OTP SMS (may take a minute).'
-            );
+            flash('admin_notice', 'Test SMS sent. Check your phone.');
         } else {
             flash('admin_notice', 'OTP test failed: ' . ($result['error'] ?? 'unknown'));
         }
@@ -42,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     foreach ($keys as $key) {
         $val = trim((string)($_POST[$key] ?? ''));
+        if ($key === 'arkasel_api_key') {
+            $val = arkesel_normalize_api_key($val);
+        }
         set_setting($pdo, $key, $val);
     }
     set_setting($pdo, 'arkasel_otp_disable_sms_fallback', isset($_POST['arkasel_otp_disable_sms_fallback']) ? '1' : '');
@@ -61,23 +58,16 @@ $values = [
 ];
 ?>
 <?php render_layout_start('SMS / API Settings', 'settings'); ?>
-<div class="max-w-3xl mx-auto">
+<div class="w-full">
   <h1 class="text-3xl font-black text-slate-900">Arkesel SMS &amp; OTP</h1>
   <p class="text-slate-500 mt-1 text-sm">Configure outbound SMS and OTP for staff onboarding. Keys are stored locally in SQLite.</p>
   <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
-  <div class="mt-6 p-4 bg-amber-50 border border-amber-200 text-amber-950 text-sm space-y-2">
-    <p class="font-semibold">OTP requires your <strong>Main SMS API key</strong></p>
-    <p class="text-amber-900/90">Sub-keys (“multiple API keys”) often return <strong>Invalid key</strong> for OTP — paste the Main SMS key from the Arkesel dashboard.</p>
-    <p class="text-amber-900/90">If the <strong>managed OTP API</strong> returns errors (e.g. code 1007), this app automatically retries using the <strong>standard SMS API</strong> with the same message and a generated code — the same route most integrations use when sending SMS.</p>
-  </div>
-
   <form method="post" class="mt-8 bg-white  border border-slate-200 p-6 md:p-8 space-y-5">
     <input type="hidden" name="settings_action" value="save">
     <label class="block">
-      <span class="text-sm font-semibold text-slate-700">API key (Main SMS)</span>
-      <input name="arkasel_api_key" type="password" autocomplete="off" value="<?=h($values['arkasel_api_key'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm" placeholder="Paste Main SMS API key from Arkesel dashboard">
-      <span class="text-xs text-slate-500 mt-1 block">Plain SMS uses <code class="bg-slate-100 px-1">Authorization: Bearer</code>. OTP uses <code class="bg-slate-100 px-1">api-key</code> (same key value); if that returns 401, the code retries with Bearer.</span>
+      <span class="text-sm font-semibold text-slate-700">API key</span>
+      <input name="arkasel_api_key" type="password" autocomplete="off" value="<?=h($values['arkasel_api_key'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm" placeholder="Arkesel SMS API key">
     </label>
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">Sender ID</span>
@@ -87,12 +77,10 @@ $values = [
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">SMS API URL</span>
       <input name="arkasel_api_url" value="<?=h($values['arkasel_api_url'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm">
-      <span class="text-xs text-slate-500 mt-1 block">Use Arkesel SMS API v2: <code class="bg-slate-100 px-1">POST https://sms.arkesel.com/api/v2/sms/send</code> with JSON <code class="bg-slate-100 px-1">sender</code>, <code class="bg-slate-100 px-1">message</code>, <code class="bg-slate-100 px-1">recipients</code> and <code class="bg-slate-100 px-1">api-key</code> header (Bearer retried on 401). The old <code class="bg-slate-100 px-1">/sms/api</code> URL returns HTTP 405.</span>
     </label>
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">OTP generate URL</span>
       <input name="arkasel_otp_generate_url" value="<?=h($values['arkasel_otp_generate_url'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm">
-      <span class="text-xs text-slate-500 mt-1 block">Official OTP endpoint <code class="bg-slate-100 px-1">POST https://sms.arkesel.com/api/otp/generate</code> with JSON: <code class="bg-slate-100 px-1">number</code>, <code class="bg-slate-100 px-1">sender_id</code>, <code class="bg-slate-100 px-1">expiry</code> (1–10), <code class="bg-slate-100 px-1">length</code> (6–15), <code class="bg-slate-100 px-1">medium</code> (<code class="bg-slate-100 px-1">sms</code>), <code class="bg-slate-100 px-1">type</code> (<code class="bg-slate-100 px-1">numeric</code>), <code class="bg-slate-100 px-1">message</code> with <code class="bg-slate-100 px-1">%otp_code%</code>.</span>
     </label>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <label class="block">
@@ -106,7 +94,7 @@ $values = [
     </div>
     <label class="flex items-start gap-3 cursor-pointer">
       <input type="checkbox" name="arkasel_otp_disable_sms_fallback" value="1" class="mt-1" <?= trim((string)$values['arkasel_otp_disable_sms_fallback']) === '1' ? 'checked' : '' ?>>
-      <span class="text-sm text-slate-700"><strong>Disable SMS fallback</strong> — only use Arkesel’s OTP generate endpoint (no automatic retry via plain SMS).</span>
+      <span class="text-sm text-slate-700">Use Arkesel OTP generate API only (skip sending codes via standard SMS first).</span>
     </label>
     <button type="submit" class="w-full md:w-auto px-6 py-3  bg-slate-950 text-white font-bold hover:bg-slate-800">Save settings</button>
   </form>

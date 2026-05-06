@@ -9,7 +9,7 @@ $stmt->execute(['%executive%']);
 $executives = $stmt->fetchAll();
 ?>
 <?php render_layout_start('Branch Executive', 'branch_executive'); ?>
-<div class="max-w-7xl mx-auto">
+<div class="w-full">
   <h1 class="text-3xl font-black">Branch Executive</h1>
   <p class="text-slate-500 mt-1">Executive member directory with photo and quick profile access.</p>
 

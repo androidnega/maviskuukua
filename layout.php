@@ -73,8 +73,21 @@ function render_layout_start(string $title, string $active = 'home'): void {
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 role-<?=h($skin)?>">
-  <div class="min-h-screen md:flex">
-    <aside class="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r p-6 md:sticky md:top-0 md:h-screen md:overflow-y-auto">
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <header class="sticky top-0 z-[60] flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:hidden">
+      <button type="button" id="mavis-nav-open" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-controls="mavis-sidebar" aria-expanded="false" aria-label="Open menu">
+        <i class="fa-solid fa-bars text-lg" aria-hidden="true"></i>
+      </button>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-base font-black leading-tight text-slate-900">Mavis System</p>
+        <p class="truncate text-[11px] text-slate-500"><?=h($who)?></p>
+      </div>
+      <div class="h-10 w-10 shrink-0" aria-hidden="true"></div>
+    </header>
+
+    <div id="mavis-nav-backdrop" class="fixed inset-0 z-[55] bg-slate-900/40 opacity-0 pointer-events-none transition-opacity duration-200 md:hidden" aria-hidden="true"></div>
+
+    <aside id="mavis-sidebar" class="fixed inset-y-0 left-0 z-[70] flex w-[min(100vw,18rem)] max-w-[85vw] -translate-x-full flex-col overflow-y-auto border-b border-slate-200 bg-white p-6 shadow-xl transition-transform duration-200 ease-out md:static md:z-auto md:h-screen md:w-72 md:max-w-none md:translate-x-0 md:border-b-0 md:border-r md:shadow-none md:flex-shrink-0">
       <div class="flex items-center gap-3 mb-8">
         <div class="h-11 w-11  bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <i class="fa-solid fa-users"></i>
@@ -103,7 +116,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
         <?php endforeach; ?>
       </nav>
     </aside>
-    <main class="flex-1 p-4 md:p-8">
+    <main class="relative z-0 min-h-0 min-w-0 flex-1 p-4 md:p-8">
 <?php
 }
 
@@ -111,6 +124,67 @@ function render_layout_end(): void {
     ?>
     </main>
   </div>
+  <script>
+  (function () {
+    var openBtn = document.getElementById('mavis-nav-open');
+    var sidebar = document.getElementById('mavis-sidebar');
+    var backdrop = document.getElementById('mavis-nav-backdrop');
+    if (!sidebar || !backdrop) return;
+
+    function isMobileNav() {
+      return window.matchMedia('(max-width: 767px)').matches;
+    }
+
+    function setOpen(open) {
+      if (open) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        backdrop.classList.add('opacity-100');
+        backdrop.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('overflow-hidden');
+        if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        backdrop.classList.remove('opacity-100');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+        if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function closeNav() {
+      if (isMobileNav()) setOpen(false);
+    }
+
+    function toggleNav() {
+      if (!isMobileNav()) return;
+      var closed = sidebar.classList.contains('-translate-x-full');
+      setOpen(closed);
+    }
+
+    openBtn && openBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      toggleNav();
+    });
+
+    backdrop.addEventListener('click', closeNav);
+
+    sidebar.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        if (isMobileNav()) closeNav();
+      });
+    });
+
+    window.addEventListener('resize', function () {
+      if (!isMobileNav()) setOpen(false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeNav();
+    });
+  })();
+  </script>
 </body>
 </html>
 <?php

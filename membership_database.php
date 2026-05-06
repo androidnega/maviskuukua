@@ -19,7 +19,7 @@ function member_photo_url(array $member): ?string {
 }
 ?>
 <?php render_layout_start('Branch Executive', 'branch_executive'); ?>
-<div class="max-w-7xl mx-auto">
+<div class="w-full">
   <h1 class="text-3xl font-black">Branch Executive</h1>
   <p class="text-slate-500 mt-1">Minimal member directory with quick management actions.</p>
   <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-700 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>

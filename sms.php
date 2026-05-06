@@ -7,6 +7,34 @@ declare(strict_types=1);
  * OTP: POST https://sms.arkesel.com/api/otp/generate — JSON { number, sender_id, expiry, length, medium, type, message } with %otp_code%.
  */
 
+/**
+ * Clean pasted API keys (BOM, quotes, whitespace) so the Main key matches Arkesel exactly.
+ */
+function arkesel_normalize_api_key(string $raw): string {
+    $k = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
+    $k = trim((string)$k);
+    $k = trim($k, " \t\n\r\0\x0B\"'");
+
+    return $k;
+}
+
+function arkesel_get_api_key(PDO $pdo): string {
+    return arkesel_normalize_api_key(get_setting($pdo, 'arkasel_api_key'));
+}
+
+/**
+ * Header sets for Arkesel: official examples use api-key only; some accounts accept Bearer.
+ *
+ * @return list<list<string>>
+ */
+function arkesel_auth_header_variants(string $apiKey): array {
+    return [
+        ['Content-Type: application/json', 'api-key: ' . $apiKey],
+        ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey],
+        ['Content-Type: application/json', 'api-key: ' . $apiKey, 'Authorization: Bearer ' . $apiKey],
+    ];
+}
+
 function sms_normalize_ghana_phone(string $raw): ?string {
     $digits = preg_replace('/\D/', '', $raw);
     if ($digits === null || $digits === '') {
@@ -44,7 +72,7 @@ function arkesel_resolve_sms_send_url(string $stored): string {
  * @return array{ok: bool, error?: string, response?: string}
  */
 function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array {
-    $apiKey = trim(get_setting($pdo, 'arkasel_api_key'));
+    $apiKey = arkesel_get_api_key($pdo);
     if ($apiKey === '') {
         return ['ok' => false, 'error' => 'SMS API key not configured in Settings.'];
     }
@@ -82,21 +110,7 @@ function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array 
         return ['resp' => $resp, 'code' => $code, 'cerr' => $cerr];
     };
 
-    $authVariants = [
-        [
-            'Content-Type: application/json',
-            'api-key: ' . $apiKey,
-            'Authorization: Bearer ' . $apiKey,
-        ],
-        [
-            'Content-Type: application/json',
-            'api-key: ' . $apiKey,
-        ],
-        [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $apiKey,
-        ],
-    ];
+    $authVariants = arkesel_auth_header_variants($apiKey);
 
     $lastAuthError = '';
 
@@ -118,10 +132,17 @@ function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array 
                 return ['ok' => true, 'response' => $resp];
             }
 
+            $lowMsg = strtolower((string)($decoded['message'] ?? ''));
+            if (str_contains($lowMsg, 'invalid') && str_contains($lowMsg, 'key')) {
+                $lastAuthError = arkesel_api_user_message($decoded, $http, $resp, 'SMS');
+
+                continue;
+            }
+
             return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $http, $resp, 'SMS')];
         }
 
-        if ($http === 401) {
+        if ($http === 401 || $http === 403) {
             $lastAuthError = arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'SMS');
 
             continue;
@@ -156,14 +177,13 @@ function arkesel_api_user_message(?array $decoded, int $httpCode, string $rawRes
 
     if (
         $httpCode === 401
+        || $httpCode === 403
         || ($msg !== '' && stripos($msg, 'invalid key') !== false)
         || ($status !== '' && strtolower($status) === 'error' && stripos($msg, 'invalid key') !== false)
     ) {
         return 'Authentication failed'
             . ($c !== null ? ' (code ' . $c . ')' : '')
-            . '. Paste the Main SMS API key from Arkesel (Dashboard → API). '
-            . 'OTP does not accept “multiple” sub-keys. Remove spaces/newlines from the key. '
-            . 'If it still fails, create a fresh Main key in the dashboard.';
+            . '. Check the SMS API key in Settings.';
     }
 
     if ($c === '1007' || $c === 1007) {
@@ -260,17 +280,26 @@ function arkesel_otp_try_sms_fallback(PDO $pdo, string $e164NoPlus, string $mess
 }
 
 /**
- * Arkesel managed OTP: message MUST contain %otp_code% placeholder.
- * Retries different auth header combinations only on HTTP 401 (invalid key).
- * If the OTP API returns an error (e.g. 1007) but your account sends SMS fine, falls back to plain SMS with the same text.
+ * Sends OTP using the standard SMS API first (fast path). If disabled or SMS fails, tries Arkesel /otp/generate.
+ * Message MUST contain %otp_code% when using SMS path (placeholder replaced with a generated code).
  *
  * @return array{ok: bool, error?: string, response?: string, raw?: string, delivery?: string}
  */
 function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithPlaceholder): array {
-    $apiKey = trim(get_setting($pdo, 'arkasel_api_key'));
+    $apiKey = arkesel_get_api_key($pdo);
     if ($apiKey === '') {
         return ['ok' => false, 'error' => 'SMS API key not configured in Settings.'];
     }
+
+    $disableSmsFirst = trim(get_setting($pdo, 'arkasel_otp_disable_sms_fallback')) === '1';
+
+    if (!$disableSmsFirst) {
+        $smsFirst = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
+        if ($smsFirst['ok']) {
+            return $smsFirst;
+        }
+    }
+
     $endpoint = trim(get_setting($pdo, 'arkasel_otp_generate_url', 'https://sms.arkesel.com/api/otp/generate'));
 
     $payloadArr = arkesel_otp_build_payload($pdo, $e164NoPlus, $messageWithPlaceholder);
@@ -301,21 +330,7 @@ function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithP
         return ['resp' => $resp, 'code' => $code, 'cerr' => $cerr];
     };
 
-    $authVariants = [
-        [
-            'Content-Type: application/json',
-            'api-key: ' . $apiKey,
-            'Authorization: Bearer ' . $apiKey,
-        ],
-        [
-            'Content-Type: application/json',
-            'api-key: ' . $apiKey,
-        ],
-        [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $apiKey,
-        ],
-    ];
+    $authVariants = arkesel_auth_header_variants($apiKey);
 
     $lastAuthError = '';
 
@@ -334,51 +349,36 @@ function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithP
                 return ['ok' => true, 'response' => $resp, 'raw' => $resp, 'delivery' => 'otp_api'];
             }
 
-            // HTTP 200 but managed OTP failed — try standard SMS API (same wallet many apps use)
-            $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
-            if ($fb['ok']) {
-                return $fb;
-            }
+            $lowMsg = strtolower((string)($decoded['message'] ?? ''));
+            if (str_contains($lowMsg, 'invalid') && str_contains($lowMsg, 'key')) {
+                $lastAuthError = arkesel_api_user_message($decoded, $http, $resp, 'OTP');
 
-            $apiErr = arkesel_api_user_message($decoded, $http, $resp, 'OTP');
+                continue;
+            }
 
             return [
                 'ok' => false,
-                'error' => $apiErr . ' SMS fallback: ' . ($fb['error'] ?? 'failed'),
+                'error' => arkesel_api_user_message($decoded, $http, $resp, 'OTP'),
                 'raw' => $resp,
             ];
         }
 
-        if ($http === 401) {
+        if ($http === 401 || $http === 403) {
             $lastAuthError = arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP');
 
             continue;
         }
 
-        // Non-401 HTTP error — try SMS fallback once (OTP endpoint may reject while SMS works)
-        $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
-        if ($fb['ok']) {
-            return $fb;
-        }
-
         return [
             'ok' => false,
-            'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP')
-                . ' SMS fallback: ' . ($fb['error'] ?? ''),
+            'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP'),
             'raw' => $resp,
         ];
     }
 
-    // Only HTTP 401 from every variant — OTP endpoint won't authenticate; SMS API often still works
-    $fb = arkesel_otp_try_sms_fallback($pdo, $e164NoPlus, $messageWithPlaceholder);
-    if ($fb['ok']) {
-        return $fb;
-    }
-
     return [
         'ok' => false,
-        'error' => ($lastAuthError !== '' ? $lastAuthError : 'OTP authentication failed after retries.')
-            . ' SMS fallback: ' . ($fb['error'] ?? ''),
+        'error' => $lastAuthError !== '' ? $lastAuthError : 'OTP request failed after retries.',
         'raw' => null,
     ];
 }
