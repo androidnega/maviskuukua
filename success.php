@@ -1,5 +1,6 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/tracking.php';
 require 'pdf.php';
 
 $id = (int)($_GET['id'] ?? 0);
@@ -9,6 +10,9 @@ $m = $stmt->fetch();
 if (!$m) {
     redirect('register.php');
 }
+
+tracking_public_hit('success');
+tracking_success_page_view($id);
 
 $pendingId = isset($_SESSION['pending_pdf_member_id']) ? (int)$_SESSION['pending_pdf_member_id'] : 0;
 if ($pendingId === $id) {

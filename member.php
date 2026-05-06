@@ -30,8 +30,8 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
 ?>
 <?php render_layout_start('Member Details', 'received_list'); ?>
 <div class="max-w-6xl mx-auto">
-  <a href="received_list.php" class="text-sm text-slate-600"><i class="fa-solid fa-arrow-left mr-1"></i>Back to list</a>
-  <div class="bg-white rounded-3xl border p-6 md:p-8 mt-4 shadow-sm">
+  <a href="received_list.php" class="text-sm text-slate-600"><i class="fa-solid fa-arrow-left mr-1"></i>Back to registrations</a>
+  <div class="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 mt-4">
     <?php if (!empty($m['deleted_at'])): ?>
       <div class="mb-5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm font-semibold">
         <i class="fa-solid fa-box-archive mr-1"></i> This record is archived (soft-deleted). Files may still be available for audit.
@@ -39,7 +39,7 @@ $photoDownloadName = 'member_' . (int)$m['id'] . '_' . $safeMembershipId . '_pho
     <?php endif; ?>
     <div class="flex flex-col md:flex-row md:items-center gap-5">
       <?php if($photoUrl): ?>
-        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl p-1.5 border border-slate-300 bg-white shadow-sm">
+        <div class="w-28 h-36 md:w-36 md:h-44 rounded-2xl p-1.5 border border-slate-300 bg-white">
           <img src="<?=h($photoUrl)?>" class="w-full h-full rounded-xl object-cover object-top bg-slate-50" alt="Member photo">
         </div>
       <?php else: ?>

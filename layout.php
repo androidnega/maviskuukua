@@ -2,7 +2,7 @@
 require_once 'config.php';
 
 /**
- * @param string $active Menu key: dashboard, branch_executive, received_list, bulk_export, team_chat, manage_staff, audit, settings
+ * @param string $active Menu key: dashboard, branch_executive, received_list, manage_staff, audit, settings
  */
 function render_layout_start(string $title, string $active = 'home'): void {
     if (!is_admin()) {
@@ -24,13 +24,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
     if (can_access_branch_executive_data()) {
         $menu[] = ['key' => 'branch_executive', 'label' => 'Branch Executive', 'href' => 'membership_database.php', 'icon' => 'fa-user-tie'];
     }
-    $menu[] = ['key' => 'received_list', 'label' => 'List Received', 'href' => 'received_list.php', 'icon' => 'fa-table-list'];
-    if (can_export_bulk_members()) {
-        $menu[] = ['key' => 'bulk_export', 'label' => 'Bulk Export', 'href' => 'export_members_bulk.php', 'icon' => 'fa-file-export'];
-    }
-    if (can_access_team_chat()) {
-        $menu[] = ['key' => 'team_chat', 'label' => 'Team Chat', 'href' => 'team_chat.php', 'icon' => 'fa-comments'];
-    }
+    $menu[] = ['key' => 'received_list', 'label' => 'Registrations', 'href' => 'received_list.php', 'icon' => 'fa-table-list'];
     if (can_manage_staff_accounts()) {
         $menu[] = ['key' => 'manage_staff', 'label' => 'Staff Accounts', 'href' => 'manage_staff.php', 'icon' => 'fa-user-shield'];
     }

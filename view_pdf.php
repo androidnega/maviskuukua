@@ -41,6 +41,14 @@ if (!is_file($filePath)) {
 }
 
 $download = isset($_GET['download']) && $_GET['download'] === '1';
+
+require_once __DIR__ . '/tracking.php';
+if ($download) {
+    tracking_public_pdf_download($id);
+} else {
+    tracking_public_pdf_inline($id);
+}
+
 $safeMembershipId = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$member['membership_id']);
 $downloadName = 'member_' . $id . '_' . $safeMembershipId . '.pdf';
 

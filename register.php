@@ -1,6 +1,10 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/tracking.php';
 require 'pdf.php';
+
+tracking_public_hit('register');
+tracking_registration_funnel_touch();
 $errors = [];
 $old = [];
 $languageOptions = ['FANTE', 'AHANTA', 'NZEMA', 'ENGLISH', 'FRENCH', 'EWE', 'GA', 'DAGOMBA', 'WASA', 'TWI', 'HAUSA', 'DANGME', 'GONJA', 'KUSAAL', 'SISSALI', 'KASEM', 'DAGAARE'];
@@ -201,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $createdAt
                 ]);
                 $id = (int)$pdo->lastInsertId();
+                tracking_registration_attach_member($id);
 
                 $token = null;
                 for ($tries = 0; $tries < 12; $tries++) {
@@ -277,7 +282,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
 <body class="bg-slate-100 text-slate-900">
 <main class="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
   <a href="index.php" class="text-sm text-slate-600">← Home</a>
-  <div class="bg-white rounded-3xl shadow-sm border p-4 sm:p-6 md:p-8 mt-4">
+  <div class="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 md:p-8 mt-4">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mt-1">
       <h1 class="text-2xl sm:text-3xl font-black">Membership Registration</h1>
       <button type="button" id="clearFormBtn" class="shrink-0 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50">Clear all fields</button>

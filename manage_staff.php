@@ -86,7 +86,7 @@ if (is_super_admin()) {
   <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
   <div class="mt-8 grid lg:grid-cols-2 gap-8">
-    <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+    <div class="bg-white rounded-3xl border border-slate-200 p-6">
       <h2 class="font-bold text-lg text-slate-900">Create account</h2>
       <p class="text-xs text-slate-500 mt-1">Credentials are sent by Arkesel OTP SMS (message includes %otp_code% plus username/password).</p>
       <form method="post" class="mt-4 space-y-4">
@@ -116,7 +116,7 @@ if (is_super_admin()) {
       </form>
     </div>
 
-    <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 overflow-x-auto">
       <h2 class="font-bold text-lg text-slate-900">Directory</h2>
       <table class="w-full text-sm mt-4">
         <thead><tr class="text-left text-xs uppercase text-slate-500 border-b">

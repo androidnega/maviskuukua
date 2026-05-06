@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/tracking.php';
+tracking_public_hit('/');
 if (is_admin()) {
     redirect('admin.php');
 }

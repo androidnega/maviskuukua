@@ -163,6 +163,30 @@ function migrate_system_extensions(PDO $pdo): void {
         created_at TEXT NOT NULL
     )');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS web_page_hits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip TEXT NOT NULL,
+        anon_id TEXT NOT NULL,
+        path TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_web_hits_created ON web_page_hits(created_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_web_hits_ip ON web_page_hits(ip)');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS registration_funnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anon_id TEXT NOT NULL UNIQUE,
+        member_id INTEGER UNIQUE,
+        ip TEXT,
+        registration_started_at TEXT NOT NULL,
+        submitted_at TEXT,
+        success_page_viewed_at TEXT,
+        pdf_downloaded_at TEXT,
+        pdf_inline_viewed_at TEXT,
+        visit_count INTEGER NOT NULL DEFAULT 1,
+        last_seen_at TEXT NOT NULL
+    )');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS member_audit_snapshots (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         member_id INTEGER NOT NULL,

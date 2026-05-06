@@ -35,7 +35,7 @@ $values = [
   <p class="text-slate-500 mt-1 text-sm">Configure outbound SMS (registration confirmations) and OTP generation for staff onboarding. Keys are stored locally in SQLite.</p>
   <?php if ($notice): ?><div class="mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
-  <form method="post" class="mt-8 bg-white rounded-3xl border border-slate-200 p-6 md:p-8 space-y-5 shadow-sm">
+  <form method="post" class="mt-8 bg-white rounded-3xl border border-slate-200 p-6 md:p-8 space-y-5">
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">API key</span>
       <input name="arkasel_api_key" type="password" autocomplete="off" value="<?=h($values['arkasel_api_key'])?>" class="mt-1 w-full rounded-xl border border-slate-200 p-3 font-mono text-sm" placeholder="Paste Arkesel API key">

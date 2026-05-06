@@ -47,10 +47,6 @@ function can_export_bulk_members(): bool {
     return is_super_admin() || is_coordinator();
 }
 
-function can_access_team_chat(): bool {
-    return is_super_admin() || is_coordinator();
-}
-
 function members_active_clause(string $alias = ''): string {
     $p = $alias !== '' ? $alias . '.' : '';
 

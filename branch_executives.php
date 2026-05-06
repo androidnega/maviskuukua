@@ -13,6 +13,17 @@ $executives = $stmt->fetchAll();
   <h1 class="text-3xl font-black">Branch Executive</h1>
   <p class="text-slate-500 mt-1">Executive member directory with photo and quick profile access.</p>
 
+  <div class="mt-4 flex flex-wrap gap-2">
+    <a href="export_executives.php?format=csv" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-csv mr-1 text-emerald-600"></i>Executive CSV</a>
+    <a href="export_executives.php?format=excel" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i>Executive Excel</a>
+    <a href="export_executives.php?format=pdf" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-pdf mr-1 text-emerald-600"></i>Executive PDF</a>
+    <?php if (can_export_bulk_members()): ?>
+    <a href="export_members_bulk.php?format=csv" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members CSV</a>
+    <a href="export_members_bulk.php?format=excel" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members Excel</a>
+    <a href="export_members_bulk.php?format=pdf" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold"><i class="fa-solid fa-file-export mr-1 text-slate-600"></i>All members PDF</a>
+    <?php endif; ?>
+  </div>
+
   <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <?php foreach ($executives as $m): ?>
       <div class="bg-white border rounded-2xl p-4">
