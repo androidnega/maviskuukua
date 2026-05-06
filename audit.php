@@ -11,9 +11,17 @@ if (!in_array($tab, ['activity', 'tokens', 'archive'], true)) {
     $tab = 'activity';
 }
 
+if (is_coordinator() && $tab === 'tokens') {
+    redirect('audit.php?tab=activity');
+}
+
 $download = strtolower(trim((string)($_GET['download'] ?? '')));
 $fmt = strtolower(trim((string)($_GET['fmt'] ?? 'csv')));
 if ($download === 'activity' && ($fmt === 'csv' || $fmt === 'json')) {
+    if (!is_super_admin()) {
+        flash('admin_notice', 'Full audit exports are available to super admins only.');
+        redirect('audit.php');
+    }
     $logs = $pdo->query("SELECT * FROM audit_logs WHERE action <> 'chat_post' ORDER BY id DESC LIMIT 5000")->fetchAll(PDO::FETCH_ASSOC);
     if ($fmt === 'json') {
         header('Content-Type: application/json; charset=UTF-8');
@@ -41,7 +49,14 @@ if ($download === 'activity' && ($fmt === 'csv' || $fmt === 'json')) {
     exit;
 }
 
-$logs = $pdo->query("SELECT audit_logs.*, admins.username AS actor_username FROM audit_logs LEFT JOIN admins ON admins.id = audit_logs.actor_admin_id WHERE audit_logs.action <> 'chat_post' ORDER BY audit_logs.id DESC LIMIT 200")->fetchAll(PDO::FETCH_ASSOC);
+[$auditWhere, $auditParams] = audit_logs_activity_where_sql();
+$logsStmt = $pdo->prepare(
+    'SELECT audit_logs.*, admins.username AS actor_username FROM audit_logs '
+    . 'LEFT JOIN admins ON admins.id = audit_logs.actor_admin_id WHERE ' . $auditWhere
+    . ' ORDER BY audit_logs.id DESC LIMIT 200'
+);
+$logsStmt->execute($auditParams);
+$logs = $logsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $sqlTokens = 'SELECT t.*, m.membership_id,
     f.ip AS reg_ip, f.registration_started_at, f.submitted_at, f.success_page_viewed_at,
@@ -50,10 +65,15 @@ $sqlTokens = 'SELECT t.*, m.membership_id,
     LEFT JOIN members m ON m.id = t.member_id
     LEFT JOIN registration_funnel f ON f.member_id = t.member_id
     ORDER BY t.id DESC LIMIT 200';
-$tokens = $pdo->query($sqlTokens)->fetchAll(PDO::FETCH_ASSOC);
+$tokens = [];
+if (is_super_admin()) {
+    $tokens = $pdo->query($sqlTokens)->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $deleted = $pdo->query('SELECT id, membership_id, firstname, surname, phone_no, deleted_at, deleted_by_admin_id FROM members WHERE deleted_at IS NOT NULL ORDER BY datetime(deleted_at) DESC LIMIT 100')->fetchAll(PDO::FETCH_ASSOC);
-$snapCount = (int)$pdo->query('SELECT COUNT(*) AS c FROM member_audit_snapshots')->fetch()['c'];
+$snapCount = is_super_admin()
+    ? (int)$pdo->query('SELECT COUNT(*) AS c FROM member_audit_snapshots')->fetch()['c']
+    : 0;
 
 $tabLink = function (string $t) use ($tab): string {
     $active = $t === $tab;
@@ -68,20 +88,28 @@ $tabLink = function (string $t) use ($tab): string {
 <div class="w-full">
   <div class="mb-6">
     <h1 class="text-2xl font-bold text-slate-800">Audit &amp; logs</h1>
-    <p class="text-slate-500 mt-1 text-sm">Exports exclude legacy chat actions.</p>
+    <p class="text-slate-500 mt-1 text-sm"><?= is_coordinator()
+        ? 'Sensitive entries (API, account creation, SMS delivery, bulk exports, etc.) are visible to super admins only.'
+        : 'Exports exclude legacy chat actions.' ?></p>
     <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-100"><?=h($notice)?></div><?php endif; ?>
     <div class="mt-4 flex flex-wrap gap-2 items-center justify-between">
       <div class="flex flex-wrap gap-1 border-b border-slate-200 w-full md:w-auto">
         <a href="audit.php?tab=activity" class="<?=$tabLink('activity')?>">Recent activity</a>
+        <?php if (is_super_admin()): ?>
         <a href="audit.php?tab=tokens" class="<?=$tabLink('tokens')?>">Registration tokens</a>
+        <?php endif; ?>
         <a href="audit.php?tab=archive" class="<?=$tabLink('archive')?>">Archived members</a>
       </div>
+      <?php if (is_super_admin()): ?>
       <div class="flex flex-wrap gap-2 mt-2 md:mt-0">
         <a class="px-3 py-2  bg-slate-900 text-white text-xs font-semibold" href="audit.php?download=activity&amp;fmt=csv">CSV</a>
         <a class="px-3 py-2  border border-slate-200 bg-white text-xs font-semibold text-slate-700" href="audit.php?download=activity&amp;fmt=json">JSON</a>
       </div>
+      <?php endif; ?>
     </div>
+    <?php if (is_super_admin()): ?>
     <p class="text-xs text-slate-400 mt-3">Snapshots stored: <?=$snapCount?> · Registrations list hides archived rows by default.</p>
+    <?php endif; ?>
   </div>
 
   <div class="<?= $tab === 'activity' ? '' : 'hidden' ?>">

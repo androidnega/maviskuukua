@@ -108,6 +108,46 @@ function require_audit_access(): void {
     }
 }
 
+/**
+ * Audit actions hidden from coordinators (API/settings, account lifecycle, SMS plumbing, bulk exports).
+ *
+ * @return list<string>
+ */
+function audit_log_actions_hidden_from_coordinator(): array {
+    return [
+        'settings_update',
+        'staff_account_created',
+        'staff_password_reset',
+        'registration_sms',
+        'registration_sms_skipped',
+        'bulk_export_members',
+        'staff_override_delete_coordinator_context',
+        'staff_account_deleted',
+    ];
+}
+
+/**
+ * WHERE fragment + params for audit activity lists (always excludes legacy chat_post).
+ *
+ * @return array{0: string, 1: list<mixed>}
+ */
+function audit_logs_activity_where_sql(): array {
+    if (is_super_admin()) {
+        return ['audit_logs.action <> ?', ['chat_post']];
+    }
+    if (is_coordinator()) {
+        $hidden = audit_log_actions_hidden_from_coordinator();
+        $placeholders = implode(',', array_fill(0, count($hidden), '?'));
+
+        return [
+            'audit_logs.action <> ? AND audit_logs.action NOT IN (' . $placeholders . ')',
+            array_merge(['chat_post'], $hidden),
+        ];
+    }
+
+    return ['1 = 0', []];
+}
+
 function require_settings_access(): void {
     require_super_admin();
 }
