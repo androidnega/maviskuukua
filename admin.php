@@ -28,53 +28,63 @@ for ($i = 6; $i >= 0; $i--) {
 ?>
 <?php render_layout_start('Dashboard', 'dashboard'); ?>
 <div class="max-w-7xl mx-auto">
-  <div>
-    <h1 class="text-3xl font-black">Admin Dashboard</h1>
-    <p class="text-slate-500">Membership submissions</p>
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div>
+      <h1 class="text-3xl font-black text-slate-900">Admin Dashboard</h1>
+      <p class="text-slate-500 text-sm">Membership submissions overview</p>
+    </div>
+    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-200">
+      <i class="fa-solid fa-arrow-trend-up"></i>
+      <?=$trendPercent >= 0 ? '+' : ''?><?=$trendPercent?>% this week
+    </span>
   </div>
-  <div class="grid md:grid-cols-3 gap-4 mt-8">
-    <div class="bg-white rounded-2xl border p-6">
-      <p class="text-slate-500"><i class="fa-solid fa-file-signature mr-2 text-emerald-600"></i>Total Forms</p>
-      <h2 class="text-4xl font-black mt-2"><?=$total?></h2>
-    </div>
-    <div class="bg-white rounded-2xl border p-6">
-      <p class="text-slate-500"><i class="fa-solid fa-calendar-day mr-2 text-blue-600"></i>New Today</p>
-      <h2 class="text-4xl font-black mt-2"><?=$today?></h2>
-    </div>
-    <div class="bg-white rounded-2xl border p-6">
-      <p class="text-slate-500"><i class="fa-solid fa-chart-column mr-2 text-violet-600"></i>This Month</p>
-      <h2 class="text-4xl font-black mt-2"><?=$thisMonth?></h2>
-    </div>
-  </div>
-  <div class="bg-white rounded-3xl border mt-8 p-6">
-    <h2 class="font-bold text-xl">Quick Actions</h2>
-    <p class="text-slate-500 mt-2">Manage forms or open the Branch Executive database.</p>
-    <div class="mt-5 flex flex-wrap gap-3">
-      <a href="received_list.php" class="inline-block px-5 py-3 rounded-xl bg-slate-950 text-white font-bold">
-        <i class="fa-solid fa-table-list mr-2"></i>Go to List Received
-      </a>
-      <a href="membership_database.php" class="inline-block px-5 py-3 rounded-xl bg-white border font-bold text-slate-800">
-        <i class="fa-solid fa-user-tie mr-2"></i>Open Branch Executive
-      </a>
-    </div>
-  </div>
-  <div class="bg-white rounded-3xl border mt-8 p-6">
-    <h2 class="font-bold text-xl">System Trends</h2>
-    <p class="text-slate-500 mt-2">Quick trend view for the last 7 days.</p>
-    <div class="mt-5 grid md:grid-cols-2 gap-4">
-      <div class="rounded-2xl border p-4 bg-slate-50">
-        <p class="text-sm text-slate-500">Week-over-week trend</p>
-        <p class="text-2xl font-black mt-1 <?=$trendPercent >= 0 ? 'text-emerald-600' : 'text-red-600'?>">
-          <?=$trendPercent >= 0 ? '+' : ''?><?=$trendPercent?>%
-        </p>
-        <p class="text-sm text-slate-500 mt-1">Current 7 days: <?=$currentWeek?> | Previous 7 days: <?=$lastWeek?></p>
+  <div class="grid md:grid-cols-3 gap-4 mt-6">
+    <div class="bg-white rounded-2xl border border-emerald-100 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-slate-500 text-sm font-semibold">Total Forms</p>
+        <span class="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <i class="fa-solid fa-file-signature"></i>
+        </span>
       </div>
-      <div class="rounded-2xl border p-4 bg-slate-50">
-        <p class="text-sm text-slate-500 mb-2">Submissions movement (7 days)</p>
-        <div class="h-64">
-          <canvas id="submissionsChart"></canvas>
-        </div>
+      <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$total?></h2>
+    </div>
+    <div class="bg-white rounded-2xl border border-emerald-100 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-slate-500 text-sm font-semibold">New Today</p>
+        <span class="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <i class="fa-solid fa-calendar-day"></i>
+        </span>
       </div>
+      <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$today?></h2>
+    </div>
+    <div class="bg-white rounded-2xl border border-emerald-100 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-slate-500 text-sm font-semibold">This Month</p>
+        <span class="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <i class="fa-solid fa-chart-column"></i>
+        </span>
+      </div>
+      <h2 class="text-4xl font-black mt-3 text-slate-900"><?=$thisMonth?></h2>
+    </div>
+  </div>
+  <div class="bg-white rounded-3xl border border-emerald-100 mt-6 p-6 shadow-sm">
+    <h2 class="font-bold text-lg text-slate-900">Quick Actions</h2>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href="received_list.php" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500">
+        <i class="fa-solid fa-table-list"></i>List Received
+      </a>
+      <a href="membership_database.php" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50">
+        <i class="fa-solid fa-user-tie text-emerald-600"></i>Branch Executive
+      </a>
+    </div>
+  </div>
+  <div class="bg-white rounded-3xl border border-emerald-100 mt-6 p-6 shadow-sm">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h2 class="font-bold text-lg text-slate-900">Submission Trends (7 days)</h2>
+      <p class="text-xs text-slate-500">Current: <?=$currentWeek?> | Previous: <?=$lastWeek?></p>
+    </div>
+    <div class="mt-4 h-72">
+      <canvas id="submissionsChart"></canvas>
     </div>
   </div>
 </div>
@@ -94,8 +104,8 @@ if (chartEl) {
           type: 'bar',
           label: 'Daily submissions',
           data: totals,
-          borderRadius: 8,
-          backgroundColor: 'rgba(16, 185, 129, 0.65)',
+          borderRadius: 10,
+          backgroundColor: 'rgba(16, 185, 129, 0.72)',
           borderColor: 'rgba(5, 150, 105, 1)',
           borderWidth: 1.5
         },
@@ -105,9 +115,9 @@ if (chartEl) {
           data: cumulative,
           tension: 0.35,
           fill: false,
-          borderColor: 'rgba(37, 99, 235, 1)',
-          pointBackgroundColor: 'rgba(37, 99, 235, 1)',
-          pointRadius: 3.5,
+          borderColor: 'rgba(4, 120, 87, 1)',
+          pointBackgroundColor: 'rgba(4, 120, 87, 1)',
+          pointRadius: 3,
           borderWidth: 2.5
         }
       ]
@@ -126,7 +136,8 @@ if (chartEl) {
           labels: {
             usePointStyle: true,
             boxWidth: 10,
-            color: '#334155'
+            color: '#334155',
+            font: { size: 12, weight: 600 }
           }
         }
       },
