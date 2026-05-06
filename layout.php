@@ -72,8 +72,8 @@ function render_layout_start(string $title, string $active = 'home'): void {
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 role-<?=h($skin)?>">
-  <div class="min-h-screen flex flex-col md:flex-row">
+<body class="bg-slate-100 text-slate-900 role-<?=h($skin)?> md:h-screen md:overflow-hidden">
+  <div class="flex min-h-screen flex-col md:h-full md:min-h-0 md:overflow-hidden">
     <header class="sticky top-0 z-[60] flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:hidden">
       <button type="button" id="mavis-nav-open" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-controls="mavis-sidebar" aria-expanded="false" aria-label="Open menu">
         <i class="fa-solid fa-bars text-lg" aria-hidden="true"></i>
@@ -87,7 +87,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
 
     <div id="mavis-nav-backdrop" class="fixed inset-0 z-[55] bg-slate-900/40 opacity-0 pointer-events-none transition-opacity duration-200 md:hidden" aria-hidden="true"></div>
 
-    <aside id="mavis-sidebar" class="fixed inset-y-0 left-0 z-[70] flex w-[min(100vw,18rem)] max-w-[85vw] -translate-x-full flex-col overflow-y-auto border-b border-slate-200 bg-white p-6 shadow-xl transition-transform duration-200 ease-out md:static md:z-auto md:h-screen md:w-72 md:max-w-none md:translate-x-0 md:border-b-0 md:border-r md:shadow-none md:flex-shrink-0">
+    <aside id="mavis-sidebar" class="fixed inset-y-0 left-0 z-[70] flex w-[min(100vw,18rem)] max-w-[85vw] -translate-x-full flex-col overflow-y-auto border-b border-slate-200 bg-white p-6 shadow-xl transition-transform duration-200 ease-out md:z-30 md:h-screen md:w-72 md:max-w-none md:translate-x-0 md:border-b-0 md:border-r md:border-slate-200 md:shadow-none">
       <div class="flex items-center gap-3 mb-8">
         <div class="h-11 w-11  bg-emerald-100 text-emerald-700 flex items-center justify-center">
           <i class="fa-solid fa-users"></i>
@@ -116,7 +116,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
         <?php endforeach; ?>
       </nav>
     </aside>
-    <main class="relative z-0 min-h-0 min-w-0 flex-1 p-4 md:p-8">
+    <main class="relative z-0 min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 md:ml-72 md:h-full md:overflow-y-auto md:overscroll-y-contain md:p-8">
 <?php
 }
 
