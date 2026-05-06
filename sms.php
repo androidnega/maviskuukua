@@ -2,7 +2,8 @@
 declare(strict_types=1);
 /**
  * Arkesel SMS — HTTP API (developers.arkesel.com).
- * SMS: POST https://sms.arkesel.com/sms/api — JSON { sender, message, recipients[] }, Authorization: Bearer.
+ * SMS v2: POST https://sms.arkesel.com/api/v2/sms/send — JSON { sender, message, recipients[] }, header api-key (Bearer fallback).
+ * Legacy https://sms.arkesel.com/sms/api returns 405 for POST — migrated automatically in config.
  * OTP: POST https://sms.arkesel.com/api/otp/generate — JSON { number, sender_id, expiry, length, medium, type, message } with %otp_code%.
  */
 
@@ -25,6 +26,21 @@ function sms_normalize_ghana_phone(string $raw): ?string {
 }
 
 /**
+ * Resolve SMS send URL; map deprecated path that returns HTTP 405 to v2.
+ */
+function arkesel_resolve_sms_send_url(string $stored): string {
+    $t = trim($stored);
+    if ($t === '') {
+        return 'https://sms.arkesel.com/api/v2/sms/send';
+    }
+    if (!str_contains($t, '/api/v2/') && str_contains($t, 'sms.arkesel.com') && str_contains($t, '/sms/api')) {
+        return 'https://sms.arkesel.com/api/v2/sms/send';
+    }
+
+    return $t;
+}
+
+/**
  * @return array{ok: bool, error?: string, response?: string}
  */
 function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array {
@@ -32,8 +48,8 @@ function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array 
     if ($apiKey === '') {
         return ['ok' => false, 'error' => 'SMS API key not configured in Settings.'];
     }
-    $sender = trim(get_setting($pdo, 'arkasel_sender_id', 'MavisHub'));
-    $endpoint = trim(get_setting($pdo, 'arkasel_api_url', 'https://sms.arkesel.com/sms/api'));
+    $sender = substr(trim(get_setting($pdo, 'arkasel_sender_id', 'MavisHub')), 0, 11);
+    $endpoint = arkesel_resolve_sms_send_url(trim(get_setting($pdo, 'arkasel_api_url', 'https://sms.arkesel.com/api/v2/sms/send')));
 
     $payload = json_encode([
         'sender' => $sender,
@@ -49,40 +65,83 @@ function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array 
         return ['ok' => false, 'error' => 'PHP curl extension required for SMS.'];
     }
 
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => [
+    $doRequest = static function (string $url, string $body, array $headers): array {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 25,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $cerr = curl_error($ch);
+        curl_close($ch);
+
+        return ['resp' => $resp, 'code' => $code, 'cerr' => $cerr];
+    };
+
+    $authVariants = [
+        [
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey,
+            'Authorization: Bearer ' . $apiKey,
+        ],
+        [
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey,
+        ],
+        [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey,
         ],
-        CURLOPT_POSTFIELDS => $payload,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 25,
-    ]);
-    $resp = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $cerr = curl_error($ch);
-    curl_close($ch);
+    ];
 
-    if ($resp === false) {
-        return ['ok' => false, 'error' => $cerr ?: 'SMS request failed'];
-    }
-    $decoded = json_decode((string)$resp, true);
-    if ($code >= 200 && $code < 300 && is_array($decoded)) {
-        $c = $decoded['code'] ?? null;
-        if ($c === '1000' || $c === 1000) {
-            return ['ok' => true, 'response' => $resp];
+    $lastAuthError = '';
+
+    foreach ($authVariants as $headers) {
+        $r = $doRequest($endpoint, $payload, $headers);
+        if ($r['resp'] === false) {
+            return ['ok' => false, 'error' => $r['cerr'] ?: 'SMS request failed'];
         }
-        $msg = trim((string)($decoded['message'] ?? ''));
 
-        return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $code, $resp, 'SMS')];
-    }
-    if ($code >= 200 && $code < 300) {
-        return ['ok' => true, 'response' => $resp];
+        $resp = $r['resp'];
+        $http = $r['code'];
+        $decoded = json_decode((string)$resp, true);
+
+        if ($http >= 200 && $http < 300 && is_array($decoded)) {
+            $c = $decoded['code'] ?? null;
+            $st = strtolower((string)($decoded['status'] ?? ''));
+            // v2 /api/v2/sms/send returns { "status": "success", "data": ... }; legacy uses code 1000
+            if ($c === '1000' || $c === 1000 || $st === 'success') {
+                return ['ok' => true, 'response' => $resp];
+            }
+
+            return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $http, $resp, 'SMS')];
+        }
+
+        if ($http === 401) {
+            $lastAuthError = arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'SMS');
+
+            continue;
+        }
+
+        if ($http === 405) {
+            return [
+                'ok' => false,
+                'error' => 'HTTP 405: SMS endpoint does not accept this request. Use POST '
+                    . 'https://sms.arkesel.com/api/v2/sms/send with JSON sender, message, recipients (see Settings).',
+            ];
+        }
+
+        return ['ok' => false, 'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'SMS')];
     }
 
-    return ['ok' => false, 'error' => 'HTTP ' . $code . ': ' . $resp];
+    return [
+        'ok' => false,
+        'error' => $lastAuthError !== '' ? $lastAuthError : 'SMS authentication failed after retries.',
+    ];
 }
 
 /**

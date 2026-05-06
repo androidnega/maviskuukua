@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $values = [
     'arkasel_api_key' => get_setting($pdo, 'arkasel_api_key'),
     'arkasel_sender_id' => get_setting($pdo, 'arkasel_sender_id', 'MavisHub'),
-    'arkasel_api_url' => get_setting($pdo, 'arkasel_api_url', 'https://sms.arkesel.com/sms/api'),
+    'arkasel_api_url' => get_setting($pdo, 'arkasel_api_url', 'https://sms.arkesel.com/api/v2/sms/send'),
     'arkasel_otp_generate_url' => get_setting($pdo, 'arkasel_otp_generate_url', 'https://sms.arkesel.com/api/otp/generate'),
     'arkasel_otp_expiry' => get_setting($pdo, 'arkasel_otp_expiry', '5'),
     'arkasel_otp_length' => get_setting($pdo, 'arkasel_otp_length', '6'),
@@ -87,7 +87,7 @@ $values = [
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">SMS API URL</span>
       <input name="arkasel_api_url" value="<?=h($values['arkasel_api_url'])?>" class="mt-1 w-full  border border-slate-200 p-3 font-mono text-sm">
-      <span class="text-xs text-slate-500 mt-1 block">Official JSON SMS endpoint: POST <code class="bg-slate-100 px-1">sender</code>, <code class="bg-slate-100 px-1">message</code>, <code class="bg-slate-100 px-1">recipients</code> (array of 233… numbers). Matches Arkesel’s documented <code class="bg-slate-100 px-1">https://sms.arkesel.com/sms/api</code>.</span>
+      <span class="text-xs text-slate-500 mt-1 block">Use Arkesel SMS API v2: <code class="bg-slate-100 px-1">POST https://sms.arkesel.com/api/v2/sms/send</code> with JSON <code class="bg-slate-100 px-1">sender</code>, <code class="bg-slate-100 px-1">message</code>, <code class="bg-slate-100 px-1">recipients</code> and <code class="bg-slate-100 px-1">api-key</code> header (Bearer retried on 401). The old <code class="bg-slate-100 px-1">/sms/api</code> URL returns HTTP 405.</span>
     </label>
     <label class="block">
       <span class="text-sm font-semibold text-slate-700">OTP generate URL</span>

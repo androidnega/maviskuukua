@@ -203,6 +203,24 @@ function migrate_system_extensions(PDO $pdo): void {
         requested_at TEXT NOT NULL
     )');
 
+    $stUrl = $pdo->prepare('SELECT value FROM app_settings WHERE key = ?');
+    $stUrl->execute(['arkasel_api_url']);
+    $savedSmsUrl = $stUrl->fetch(PDO::FETCH_ASSOC);
+    if ($savedSmsUrl !== false) {
+        $v = trim((string)$savedSmsUrl['value']);
+        if (
+            $v !== ''
+            && !str_contains($v, '/api/v2/')
+            && str_contains($v, 'sms.arkesel.com')
+            && str_contains($v, '/sms/api')
+        ) {
+            $pdo->prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')->execute([
+                'arkasel_api_url',
+                'https://sms.arkesel.com/api/v2/sms/send',
+            ]);
+        }
+    }
+
     $memCols = [];
     foreach ($pdo->query('PRAGMA table_info(members)')->fetchAll() as $col) {
         $memCols[] = $col['name'];
