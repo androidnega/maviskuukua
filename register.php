@@ -3,9 +3,33 @@ require 'config.php';
 require 'pdf.php';
 $errors = [];
 $old = [];
+$languageOptions = ['FANTE', 'AHANTA', 'NZEMA', 'ENGLISH', 'FRENCH', 'EWE', 'GA', 'DAGOMBA', 'WASA', 'TWI', 'HAUSA', 'DANGME', 'GONJA', 'KUSAAL', 'SISSALI', 'KASEM', 'DAGAARE'];
 
 function validate_required(array $data, string $field, string $label, array &$errors): void {
     if (trim($data[$field] ?? '') === '') $errors[$field] = "$label is required.";
+}
+
+function normalize_post_value($value) {
+    if (is_array($value)) {
+        $normalized = [];
+        foreach ($value as $item) {
+            $normalized[] = normalize_post_value($item);
+        }
+        return $normalized;
+    }
+    return trim((string)$value);
+}
+
+function validate_required_selection(array $data, string $field, string $label, array &$errors): void {
+    $value = $data[$field] ?? [];
+    if (!is_array($value) || count($value) === 0) {
+        $errors[$field] = "$label is required.";
+    }
+}
+
+function has_selected_language(array $old, string $language): bool {
+    $langs = $old['languages'] ?? [];
+    return is_array($langs) && in_array($language, $langs, true);
 }
 
 function normalize_ghana_card(string $value): ?string {
@@ -18,7 +42,26 @@ function normalize_ghana_card(string $value): ?string {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = array_map('trim', $_POST);
+    $old = [];
+    foreach ($_POST as $key => $value) {
+        $old[$key] = normalize_post_value($value);
+    }
+    foreach (['firstname', 'surname', 'place_of_birth', 'branch', 'voter_id_no', 'membership_id', 'positions_held', 'profession', 'proposer_name', 'proposer_party_id'] as $field) {
+        if (isset($old[$field]) && is_string($old[$field])) {
+            $old[$field] = strtoupper($old[$field]);
+        }
+    }
+    $selectedLanguages = [];
+    if (isset($old['languages']) && is_array($old['languages'])) {
+        foreach ($old['languages'] as $lang) {
+            $lang = strtoupper(trim((string)$lang));
+            if ($lang !== '') {
+                $selectedLanguages[] = $lang;
+            }
+        }
+        $selectedLanguages = array_values(array_unique($selectedLanguages));
+    }
+    $old['languages'] = $selectedLanguages;
     validate_required($old, 'firstname', 'Firstname', $errors);
     validate_required($old, 'surname', 'Surname', $errors);
     validate_required($old, 'place_of_birth', 'Place of birth', $errors);
@@ -29,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     validate_required($old, 'voter_id_no', 'Voter ID number', $errors);
     validate_required($old, 'ghana_card_no', 'Ghana Card number', $errors);
     validate_required($old, 'positions_held', 'Positions held', $errors);
-    validate_required($old, 'languages', 'Languages', $errors);
+    validate_required_selection($old, 'languages', 'Languages', $errors);
     validate_required($old, 'profession', 'Profession', $errors);
     validate_required($old, 'proposer_name', 'Proposer name', $errors);
     validate_required($old, 'proposer_party_id', 'Proposer party ID', $errors);
@@ -92,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     strtoupper($old['voter_id_no']),
                     strtoupper($old['ghana_card_no']),
                     $old['positions_held'],
-                    $old['languages'],
+                    implode(', ', $old['languages']),
                     $old['profession'],
                     '',
                     '',
@@ -114,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'voter_id_no' => strtoupper($old['voter_id_no']),
                     'ghana_card_no' => strtoupper($old['ghana_card_no']),
                     'positions_held' => $old['positions_held'],
-                    'languages' => $old['languages'],
+                    'languages' => implode(', ', $old['languages']),
                     'profession' => $old['profession'],
                     'proposer_name' => $old['proposer_name'],
                     'proposer_party_id' => strtoupper($old['proposer_party_id']),
@@ -143,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-function val($key, $old) { return h($old[$key] ?? ''); }
+function val($key, $old) { return h(is_array($old[$key] ?? null) ? '' : ($old[$key] ?? '')); }
 function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-600 text-sm mt-1">'.h($errors[$key]).'</p>' : ''; }
 ?>
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Register</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><script src="https://cdn.tailwindcss.com"></script></head>
@@ -162,11 +205,11 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <span id="stepBadge3" class="px-3 py-1 rounded-full bg-slate-200 text-slate-600">Step 3</span>
       </div>
       <section id="step1"><h2 class="font-bold text-lg mb-4">Personal Details</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label>Firstname *<input name="firstname" value="<?=val('firstname',$old)?>" placeholder="Enter first name" class="w-full mt-1 rounded-xl border p-3" required><?=err('firstname',$errors)?></label>
-        <label>Surname *<input name="surname" value="<?=val('surname',$old)?>" placeholder="Enter surname" class="w-full mt-1 rounded-xl border p-3" required><?=err('surname',$errors)?></label>
-        <label>Place of birth *<input name="place_of_birth" value="<?=val('place_of_birth',$old)?>" placeholder="e.g. Takoradi" class="w-full mt-1 rounded-xl border p-3" required><?=err('place_of_birth',$errors)?></label>
+        <label>Firstname *<input name="firstname" value="<?=val('firstname',$old)?>" placeholder="Enter first name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('firstname',$errors)?></label>
+        <label>Surname *<input name="surname" value="<?=val('surname',$old)?>" placeholder="Enter surname" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('surname',$errors)?></label>
+        <label>Place of birth *<input name="place_of_birth" value="<?=val('place_of_birth',$old)?>" placeholder="e.g. Takoradi" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('place_of_birth',$errors)?></label>
         <label>Date of birth *<input type="date" name="date_of_birth" value="<?=val('date_of_birth',$old)?>" class="w-full mt-1 rounded-xl border p-3" required><?=err('date_of_birth',$errors)?></label>
-        <label>Branch *<input name="branch" value="<?=val('branch',$old)?>" placeholder="Enter branch name" class="w-full mt-1 rounded-xl border p-3" required><?=err('branch',$errors)?></label>
+        <label>Branch *<input name="branch" value="<?=val('branch',$old)?>" placeholder="Enter branch name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('branch',$errors)?></label>
         <label>Phone no *<input name="phone_no" value="<?=val('phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('phone_no',$errors)?></label>
       </div>
       <div class="mt-6">
@@ -178,9 +221,20 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
         <label>Voters ID no *<input name="voter_id_no" value="<?=val('voter_id_no',$old)?>" placeholder="BC12345678" pattern="[A-Za-z0-9]{8,15}" title="Use 8-15 letters/numbers only." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('voter_id_no',$errors)?></label>
         <label>Ghana card no *<input id="ghanaCardInput" name="ghana_card_no" value="<?=val('ghana_card_no',$old)?>" placeholder="GHA-123456789-1" pattern="GHA-[0-9]{9}-[0-9]" title="Use Ghana Card format: GHA-123456789-1" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('ghana_card_no',$errors)?></label>
         <label>Membership ID *<input name="membership_id" value="<?=val('membership_id',$old)?>" placeholder="K041503121" minlength="10" maxlength="10" pattern="[A-Za-z0-9]{10}" title="Use exactly 10 letters/numbers." class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('membership_id',$errors)?></label>
-        <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="w-full mt-1 rounded-xl border p-3" required><?=err('positions_held',$errors)?></label>
-        <label>Languages *<input name="languages" value="<?=val('languages',$old)?>" placeholder="e.g. English, Fante" class="w-full mt-1 rounded-xl border p-3" required><?=err('languages',$errors)?></label>
-        <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="w-full mt-1 rounded-xl border p-3" required><?=err('profession',$errors)?></label>
+        <label>Positions held *<input name="positions_held" value="<?=val('positions_held',$old)?>" placeholder="e.g. Branch Organizer" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('positions_held',$errors)?></label>
+        <div class="sm:col-span-2">
+          <p class="font-medium">Languages *</p>
+          <?=err('languages',$errors)?>
+          <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <?php foreach($languageOptions as $language): ?>
+              <label class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                <input type="checkbox" name="languages[]" value="<?=h($language)?>" <?=has_selected_language($old, $language) ? 'checked' : ''?>>
+                <span><?=$language?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <label>Profession *<input name="profession" value="<?=val('profession',$old)?>" placeholder="Enter profession" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('profession',$errors)?></label>
       </div>
       <div class="mt-6 flex flex-col sm:flex-row gap-3">
         <button type="button" id="backBtn2" class="w-full sm:w-auto px-8 py-3 bg-white border rounded-xl font-bold">Back</button>
@@ -188,7 +242,7 @@ function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-
       </div>
       </section>
       <section id="step3" class="hidden"><h2 class="font-bold text-lg mb-4">Proposer Information</h2><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <label>Proposer's name *<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_name',$errors)?></label>
+        <label>Proposer's name *<input name="proposer_name" value="<?=val('proposer_name',$old)?>" placeholder="Enter proposer's full name" class="js-uppercase w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_name',$errors)?></label>
         <label>Proposer's party ID *<input name="proposer_party_id" value="<?=val('proposer_party_id',$old)?>" placeholder="Enter proposer party ID" class="w-full mt-1 rounded-xl border p-3 uppercase" required><?=err('proposer_party_id',$errors)?></label>
         <label>Proposer's phone no *<input name="proposer_phone_no" value="<?=val('proposer_phone_no',$old)?>" placeholder="0241234567" class="w-full mt-1 rounded-xl border p-3" required><?=err('proposer_phone_no',$errors)?></label>
       </div>
@@ -219,6 +273,7 @@ const stepBadge3 = document.getElementById('stepBadge3');
 const photoInput = document.getElementById('photoInput');
 const photoPreview = document.getElementById('photoPreview');
 const ghanaCardInput = document.getElementById('ghanaCardInput');
+const uppercaseFields = document.querySelectorAll('.js-uppercase');
 const registrationForm = document.getElementById('registrationForm');
 const DRAFT_KEY = 'mavis_registration_draft_v1';
 const STEP_KEY = 'mavis_registration_step_v1';
@@ -259,6 +314,11 @@ function saveDraft() {
   const draft = {};
   fields.forEach((field) => {
     if (field.type === 'file') return;
+    if (field.type === 'checkbox') {
+      if (!draft[field.name]) draft[field.name] = [];
+      if (field.checked) draft[field.name].push(field.value);
+      return;
+    }
     draft[field.name] = field.value;
   });
   localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -272,6 +332,13 @@ function restoreDraft() {
     const fields = registrationForm.querySelectorAll('input[name]');
     fields.forEach((field) => {
       if (field.type === 'file') return;
+      if (field.type === 'checkbox') {
+        const savedList = draft[field.name];
+        if (Array.isArray(savedList)) {
+          field.checked = savedList.includes(field.value);
+        }
+        return;
+      }
       if (field.value.trim() !== '') return;
       const savedValue = draft[field.name];
       if (typeof savedValue === 'string') {
@@ -302,6 +369,11 @@ nextBtn2.addEventListener('click', () => {
       return;
     }
   }
+  const languageChecks = step2.querySelectorAll('input[name="languages[]"]:checked');
+  if (languageChecks.length === 0) {
+    alert('Please select at least one language.');
+    return;
+  }
   setStep(3);
 });
 
@@ -317,6 +389,12 @@ if (ghanaCardInput) {
   });
   ghanaCardInput.value = formatGhanaCard(ghanaCardInput.value);
 }
+
+uppercaseFields.forEach((field) => {
+  field.addEventListener('input', () => {
+    field.value = field.value.toUpperCase();
+  });
+});
 
 restoreDraft();
 const savedStep = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
