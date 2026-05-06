@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/rbac.php';
+require_once __DIR__ . '/sms.php';
+
 define('APP_NAME', 'Mavis Kuukua Bissue Membership System');
 define('BASE_DIR', __DIR__);
 define('STORAGE_DIR', BASE_DIR . '/storage');
@@ -104,11 +107,93 @@ function init_db(PDO $pdo): void {
         viewed_at TEXT
     )");
     migrate_members_schema($pdo);
+    migrate_system_extensions($pdo);
     $stmt = $pdo->prepare('SELECT COUNT(*) AS total FROM admins WHERE username = ?');
     $stmt->execute(['admin']);
     if ((int)$stmt->fetch()['total'] === 0) {
-        $insert = $pdo->prepare('INSERT INTO admins (username, password_hash, created_at) VALUES (?, ?, ?)');
-        $insert->execute(['admin', password_hash('admin123', PASSWORD_DEFAULT), date('c')]);
+        $insert = $pdo->prepare('INSERT INTO admins (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)');
+        $insert->execute(['admin', password_hash('admin123', PASSWORD_DEFAULT), ROLE_SUPER_ADMIN, date('c')]);
+    }
+}
+
+function migrate_system_extensions(PDO $pdo): void {
+    $adminCols = [];
+    foreach ($pdo->query('PRAGMA table_info(admins)')->fetchAll() as $col) {
+        $adminCols[] = $col['name'];
+    }
+    if (!in_array('role', $adminCols, true)) {
+        $pdo->exec("ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT '" . ROLE_SUPER_ADMIN . "'");
+    }
+    if (!in_array('created_by_admin_id', $adminCols, true)) {
+        $pdo->exec('ALTER TABLE admins ADD COLUMN created_by_admin_id INTEGER');
+    }
+    if (!in_array('phone', $adminCols, true)) {
+        $pdo->exec('ALTER TABLE admins ADD COLUMN phone TEXT');
+    }
+    $pdo->exec("UPDATE admins SET role = '" . ROLE_SUPER_ADMIN . "' WHERE role IS NULL OR trim(role) = ''");
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+    )');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_admin_id INTEGER,
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id INTEGER,
+        details_json TEXT,
+        ip TEXT,
+        created_at TEXT NOT NULL
+    )');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS registration_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL UNIQUE,
+        token TEXT NOT NULL,
+        phone_normalized TEXT,
+        created_at TEXT NOT NULL
+    )');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        admin_id INTEGER NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS member_audit_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL,
+        snapshot_json TEXT NOT NULL,
+        reason TEXT,
+        actor_admin_id INTEGER,
+        created_at TEXT NOT NULL
+    )');
+
+    $memCols = [];
+    foreach ($pdo->query('PRAGMA table_info(members)')->fetchAll() as $col) {
+        $memCols[] = $col['name'];
+    }
+    if (!in_array('deleted_at', $memCols, true)) {
+        $pdo->exec('ALTER TABLE members ADD COLUMN deleted_at TEXT');
+    }
+    if (!in_array('deleted_by_admin_id', $memCols, true)) {
+        $pdo->exec('ALTER TABLE members ADD COLUMN deleted_by_admin_id INTEGER');
+    }
+
+    $seedUsers = [
+        ['coordinator', ROLE_COORDINATOR, 'Coordinator2026!Setup'],
+        ['field_officer', ROLE_FIELD_OFFICER, 'FieldOfficer2026!Setup'],
+    ];
+    foreach ($seedUsers as [$uname, $role, $plain]) {
+        $check = $pdo->prepare('SELECT id FROM admins WHERE username = ?');
+        $check->execute([$uname]);
+        if (!$check->fetch()) {
+            $pdo->prepare('INSERT INTO admins (username, password_hash, role, created_at, created_by_admin_id) VALUES (?,?,?,?,?)')
+                ->execute([$uname, password_hash($plain, PASSWORD_DEFAULT), $role, date('c'), null]);
+        }
     }
 }
 

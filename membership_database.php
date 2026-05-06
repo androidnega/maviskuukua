@@ -1,8 +1,9 @@
 <?php
 require 'layout.php';
 require_admin();
+require_branch_executive_section();
 $pdo = db();
-$members = $pdo->query('SELECT * FROM members ORDER BY id DESC')->fetchAll();
+$members = $pdo->query('SELECT * FROM members WHERE deleted_at IS NULL ORDER BY id DESC')->fetchAll();
 $notice = flash('admin_notice');
 
 function member_photo_url(array $member): ?string {
@@ -66,10 +67,12 @@ function member_photo_url(array $member): ?string {
                 <div class="flex flex-wrap gap-2">
                   <a class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold" href="member.php?id=<?=$m['id']?>">View</a>
                   <?php if(!empty($m['pdf_path'])): ?><a class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 font-semibold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a><?php endif; ?>
-                  <form method="post" action="delete_member.php" class="inline" onsubmit="return confirm('Delete this member and related files?');">
+                  <?php if (can_delete_members()): ?>
+                  <form method="post" action="delete_member.php" class="inline" onsubmit="return confirm('Archive this member record? Files are kept for audit.');">
                     <input type="hidden" name="id" value="<?=$m['id']?>">
                     <button type="submit" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 font-semibold">Delete</button>
                   </form>
+                  <?php endif; ?>
                 </div>
               </td>
             </tr>

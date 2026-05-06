@@ -23,6 +23,11 @@ try {
         redirect('received_list.php');
     }
 
+    if (!empty($member['deleted_at']) && !is_super_admin()) {
+        flash('admin_notice', 'Cannot regenerate PDF for archived records.');
+        redirect('received_list.php');
+    }
+
     $pdfOverrides = load_member_pdf_payload($id);
     if (isset($_SESSION['pdf_overrides'][$id]) && is_array($_SESSION['pdf_overrides'][$id])) {
         $pdfOverrides = array_merge($pdfOverrides, $_SESSION['pdf_overrides'][$id]);

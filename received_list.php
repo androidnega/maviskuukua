@@ -16,10 +16,11 @@ if ($sort === 'oldest') {
 } elseif ($sort === 'membership_desc') {
     $orderBy = 'membership_id DESC';
 }
-$whereSql = '';
+$active = members_active_clause();
+$whereSql = ' WHERE ' . $active . ' ';
 $params = [];
 if ($search !== '') {
-    $whereSql = ' WHERE membership_id LIKE ? OR phone_no LIKE ? ';
+    $whereSql = ' WHERE ' . $active . ' AND (membership_id LIKE ? OR phone_no LIKE ?) ';
     $like = '%' . $search . '%';
     $params = [$like, $like];
 }
@@ -35,7 +36,7 @@ $query = "SELECT * FROM members $whereSql ORDER BY $orderBy LIMIT $perPage OFFSE
 $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $members = $stmt->fetchAll();
-$unreadCount = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE viewed_at IS NULL")->fetch()['total'];
+$unreadCount = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE viewed_at IS NULL AND $active")->fetch()['total'];
 
 function page_url(int $targetPage, string $search, string $sort): string {
     $qs = http_build_query(['search' => $search, 'sort' => $sort, 'page' => $targetPage]);
@@ -103,7 +104,7 @@ function photo_url_for_member(array $member): ?string {
                 </div>
               </td>
               <td class="py-2 px-3 align-middle font-bold text-sm whitespace-nowrap"><?=h($m['membership_id'])?></td>
-              <td class="py-2 px-3 align-middle text-slate-600 text-xs whitespace-nowrap"><?=h(date('d M Y', strtotime($m['created_at'])))?></td>
+              <td class="py-2 px-3 align-middle text-slate-600 text-xs whitespace-nowrap"><?=h(date('d M Y H:i', strtotime($m['created_at'])))?></td>
               <td class="py-2 px-3 align-middle text-right">
                 <div class="inline-flex flex-nowrap items-center justify-end gap-1 max-w-[min(100%,22rem)] overflow-x-auto">
                 <a class="shrink-0 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold" href="member.php?id=<?=$m['id']?>">Details</a>
@@ -111,14 +112,18 @@ function photo_url_for_member(array $member): ?string {
                   <a class="shrink-0 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold" target="_blank" href="view_pdf.php?id=<?=$m['id']?>">PDF</a>
                   <a class="shrink-0 px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold" target="_blank" href="print_pdf.php?id=<?=$m['id']?>">Print</a>
                 <?php endif; ?>
+                <?php if (!is_field_officer()): ?>
                 <form method="post" action="regenerate_pdf.php" class="inline shrink-0">
                   <input type="hidden" name="id" value="<?=$m['id']?>">
                   <button type="submit" class="px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold">Regen</button>
                 </form>
-                <form method="post" action="delete_member.php" class="inline shrink-0" onsubmit="return confirm('Delete this member and related files?');">
+                <?php endif; ?>
+                <?php if (can_delete_members()): ?>
+                <form method="post" action="delete_member.php" class="inline shrink-0" onsubmit="return confirm('Archive this member record? Files are kept for audit.');">
                   <input type="hidden" name="id" value="<?=$m['id']?>">
                   <button type="submit" class="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold">Delete</button>
                 </form>
+                <?php endif; ?>
                 </div>
               </td>
             </tr>

@@ -6,39 +6,39 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('received_list.php');
 }
 
+if (!can_delete_members()) {
+    flash('admin_notice', 'You do not have permission to delete records.');
+    redirect('received_list.php');
+}
+
 $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) {
     flash('admin_notice', 'Invalid member selected for deletion.');
     redirect('received_list.php');
 }
 
+$pdo = db();
+
 try {
-    $stmt = db()->prepare('SELECT pdf_path, photo_path FROM members WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT * FROM members WHERE id = ? AND deleted_at IS NULL');
     $stmt->execute([$id]);
     $member = $stmt->fetch();
 
     if (!$member) {
-        flash('admin_notice', 'Member not found.');
+        flash('admin_notice', 'Member not found or already removed.');
         redirect('received_list.php');
     }
 
-    if (!empty($member['pdf_path'])) {
-        $pdfFile = PDF_DIR . '/' . basename((string)$member['pdf_path']);
-        if (is_file($pdfFile)) {
-            @unlink($pdfFile);
-        }
-    }
+    $snapshot = json_encode($member, JSON_UNESCAPED_UNICODE);
+    $insSnap = $pdo->prepare('INSERT INTO member_audit_snapshots (member_id, snapshot_json, reason, actor_admin_id, created_at) VALUES (?,?,?,?,?)');
+    $insSnap->execute([$id, $snapshot, 'soft_delete', (int)$_SESSION['admin_id'], date('c')]);
 
-    if (!empty($member['photo_path'])) {
-        $photoFile = BASE_DIR . '/' . ltrim((string)$member['photo_path'], '/');
-        if (is_file($photoFile)) {
-            @unlink($photoFile);
-        }
-    }
+    $del = $pdo->prepare('UPDATE members SET deleted_at = ?, deleted_by_admin_id = ? WHERE id = ? AND deleted_at IS NULL');
+    $del->execute([date('c'), (int)$_SESSION['admin_id'], $id]);
 
-    $delete = db()->prepare('DELETE FROM members WHERE id = ?');
-    $delete->execute([$id]);
-    flash('admin_notice', 'Member and related files deleted successfully.');
+    log_admin_action($pdo, 'member_soft_delete', 'member', $id, ['membership_id' => $member['membership_id'] ?? '']);
+
+    flash('admin_notice', 'Member record archived (soft delete). Files are retained for audit.');
 } catch (Throwable $e) {
     flash('admin_notice', 'Delete failed. Please try again.');
 }

@@ -9,8 +9,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
     if ($admin && password_verify($password, $admin['password_hash'])) {
-        $_SESSION['admin_id'] = $admin['id'];
-        $_SESSION['admin_username'] = $admin['username'];
+        $_SESSION['admin_id'] = (int)$admin['id'];
+        $_SESSION['admin_username'] = (string)$admin['username'];
+        $role = trim((string)($admin['role'] ?? ''));
+        if ($role !== ROLE_SUPER_ADMIN && $role !== ROLE_COORDINATOR && $role !== ROLE_FIELD_OFFICER) {
+            $role = ROLE_SUPER_ADMIN;
+        }
+        $_SESSION['admin_role'] = $role;
         redirect('admin.php');
     }
     $error = 'Invalid username or password.';

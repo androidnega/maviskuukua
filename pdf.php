@@ -8,6 +8,12 @@ function pdf_date(string $value): string {
     return $time ? date('d M Y', $time) : $value;
 }
 
+function pdf_datetime(string $value): string {
+    $time = strtotime($value);
+
+    return $time ? date('d M Y H:i', $time) : $value;
+}
+
 function member_value(array $member, string $key): string {
     $value = trim((string)($member[$key] ?? ''));
     return $value !== '' ? $value : 'N/A';
@@ -363,7 +369,7 @@ function create_member_pdf(array $member, array $pdfOverrides = []): string {
     $commands[] = '0.69 0.83 0.73 RG';
     $commands[] = sprintf('%.2f %.2f m %.2f %.2f l S', $titleX, 738, $headerRuleEndX, 738);
     $addText($textBlock, $titleX, 713, 'F2', 10, $brandBlue, 'Reference No.: ' . member_value($pdfMember, 'membership_id'));
-    $addText($textBlock, $titleX, 692, 'F2', 10, $brandBlue, 'Date Submitted: ' . pdf_date(member_value($pdfMember, 'created_at')));
+    $addText($textBlock, $titleX, 692, 'F2', 10, $brandBlue, 'Date Submitted: ' . pdf_datetime(member_value($pdfMember, 'created_at')));
 
     // Photo frame (letterboxed image drawn inside with uniform scale — see below).
     $commands[] = '1 1 1 rg';

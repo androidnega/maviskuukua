@@ -1,9 +1,10 @@
 <?php
 require 'layout.php';
 require_admin();
+require_branch_executive_section();
 $pdo = db();
 
-$stmt = $pdo->prepare("SELECT * FROM members WHERE LOWER(positions_held) LIKE ? ORDER BY firstname ASC, surname ASC");
+$stmt = $pdo->prepare("SELECT * FROM members WHERE deleted_at IS NULL AND LOWER(positions_held) LIKE ? ORDER BY firstname ASC, surname ASC");
 $stmt->execute(['%executive%']);
 $executives = $stmt->fetchAll();
 ?>

@@ -161,7 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         try {
             $pdo = db();
-            $stmt = $pdo->prepare('SELECT id FROM members WHERE phone_no = ? OR voter_id_no = ? OR ghana_card_no = ? OR membership_id = ?');
+            $active = members_active_clause();
+            $stmt = $pdo->prepare("SELECT id FROM members WHERE $active AND (phone_no = ? OR voter_id_no = ? OR ghana_card_no = ? OR membership_id = ?)");
             $stmt->execute([$old['phone_no'], $old['voter_id_no'], $old['ghana_card_no'], strtoupper($old['membership_id'])]);
             if ($stmt->fetch()) {
                 $errors['general'] = 'A registration already exists with this phone number, IDs, or membership ID.';
@@ -200,6 +201,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $createdAt
                 ]);
                 $id = (int)$pdo->lastInsertId();
+
+                $token = null;
+                for ($tries = 0; $tries < 12; $tries++) {
+                    $candidate = str_pad((string)random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+                    $chk = $pdo->prepare('SELECT 1 FROM registration_tokens WHERE token = ?');
+                    $chk->execute([$candidate]);
+                    if (!$chk->fetch()) {
+                        $token = $candidate;
+                        break;
+                    }
+                }
+                if ($token === null) {
+                    $token = str_pad((string)random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+                }
+                $phoneNorm = sms_normalize_ghana_phone($old['phone_no']) ?? preg_replace('/\D/', '', $old['phone_no']);
+                $pdo->prepare('INSERT INTO registration_tokens (member_id, token, phone_normalized, created_at) VALUES (?,?,?,?)')
+                    ->execute([$id, $token, $phoneNorm, date('c')]);
+
+                $smsPhone = sms_normalize_ghana_phone($old['phone_no']);
+                if ($smsPhone !== null) {
+                    $smsBody = 'Mavis Kuukua Bissue: Your membership registration was successful. Your branch executive form has been submitted. Sponsored by Mavis Kuukua Bissue. Reference token: ' . $token . '. Keep this token safe.';
+                    $smsResult = arkesel_send_sms($pdo, $smsPhone, $smsBody);
+                    log_admin_action($pdo, 'registration_sms', 'member', $id, [
+                        'token_saved' => true,
+                        'sms_ok' => $smsResult['ok'],
+                        'sms_error' => $smsResult['error'] ?? null,
+                    ]);
+                } else {
+                    log_admin_action($pdo, 'registration_sms_skipped', 'member', $id, ['reason' => 'invalid_phone', 'token' => $token]);
+                }
+
                 $pdfOverrides = [
                     'firstname' => $old['firstname'],
                     'surname' => $old['surname'],

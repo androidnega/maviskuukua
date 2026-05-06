@@ -1,7 +1,14 @@
 <?php
 require 'config.php';
 require_admin();
-require_branch_executive_section();
+
+if (!can_export_bulk_members()) {
+    flash('admin_notice', 'You do not have access to bulk export.');
+    redirect('admin.php');
+}
+
+$pdo = db();
+$active = members_active_clause();
 
 $format = strtolower(trim((string)($_GET['format'] ?? 'csv')));
 $allowed = ['csv', 'excel', 'pdf'];
@@ -10,24 +17,29 @@ if (!in_array($format, $allowed, true)) {
     exit('Invalid export format.');
 }
 
-$rows = db()->query("SELECT firstname, surname, phone_no, branch, voter_id_no, membership_id, positions_held, created_at FROM members WHERE deleted_at IS NULL ORDER BY firstname ASC, surname ASC")->fetchAll();
+$rows = $pdo->query("SELECT * FROM members WHERE $active ORDER BY datetime(created_at) DESC")->fetchAll(PDO::FETCH_ASSOC);
+log_admin_action($pdo, 'bulk_export_members', 'members', null, ['format' => $format, 'rows' => count($rows)]);
+
+$cols = [
+    'id', 'firstname', 'surname', 'place_of_birth', 'date_of_birth', 'branch', 'phone_no', 'year_joined',
+    'voter_id_no', 'ghana_card_no', 'positions_held', 'languages', 'profession',
+    'proposer_name', 'proposer_party_id', 'proposer_phone_no', 'membership_id',
+    'photo_path', 'pdf_path', 'created_at', 'viewed_at',
+];
+
 $now = date('Ymd_His');
 
 if ($format === 'csv') {
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="branch_executives_' . $now . '.csv"');
+    header('Content-Disposition: attachment; filename="members_export_' . $now . '.csv"');
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['Name', 'Contact', 'Branch', 'Voter ID', 'Membership ID', 'Position Held', 'Submitted At']);
+    fputcsv($out, $cols);
     foreach ($rows as $r) {
-        fputcsv($out, [
-            trim((string)$r['firstname'] . ' ' . (string)$r['surname']),
-            (string)$r['phone_no'],
-            (string)$r['branch'],
-            (string)$r['voter_id_no'],
-            (string)$r['membership_id'],
-            (string)$r['positions_held'],
-            date('d M Y H:i', strtotime((string)$r['created_at']))
-        ]);
+        $line = [];
+        foreach ($cols as $c) {
+            $line[] = (string)($r[$c] ?? '');
+        }
+        fputcsv($out, $line);
     }
     fclose($out);
     exit;
@@ -35,48 +47,47 @@ if ($format === 'csv') {
 
 if ($format === 'excel') {
     header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="branch_executives_' . $now . '.xls"');
-    echo '<table border="1">';
-    echo '<tr><th>Name</th><th>Contact</th><th>Branch</th><th>Voter ID</th><th>Membership ID</th><th>Position Held</th><th>Submitted At</th></tr>';
+    header('Content-Disposition: attachment; filename="members_export_' . $now . '.xls"');
+    echo '<table border="1"><tr>';
+    foreach ($cols as $c) {
+        echo '<th>' . h($c) . '</th>';
+    }
+    echo '</tr>';
     foreach ($rows as $r) {
         echo '<tr>';
-        echo '<td>' . h(trim((string)$r['firstname'] . ' ' . (string)$r['surname'])) . '</td>';
-        echo '<td>' . h((string)$r['phone_no']) . '</td>';
-        echo '<td>' . h((string)$r['branch']) . '</td>';
-        echo '<td>' . h((string)$r['voter_id_no']) . '</td>';
-        echo '<td>' . h((string)$r['membership_id']) . '</td>';
-        echo '<td>' . h((string)$r['positions_held']) . '</td>';
-        echo '<td>' . h(date('d M Y H:i', strtotime((string)$r['created_at']))) . '</td>';
+        foreach ($cols as $c) {
+            echo '<td>' . h((string)($r[$c] ?? '')) . '</td>';
+        }
         echo '</tr>';
     }
     echo '</table>';
     exit;
 }
 
-function pdf_escape_export(string $text): string {
+function pdf_escape_bulk(string $text): string {
     return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
 }
 
 $pageW = 595;
 $pageH = 842;
 $margin = 42;
-$lineHeight = 16;
-$maxLinesPerPage = 44;
+$lineHeight = 14;
+$maxLinesPerPage = 48;
 $pages = [];
 $currentLines = [];
-$currentLines[] = 'BRANCH EXECUTIVE EXPORT';
+$currentLines[] = 'MEMBERSHIP EXPORT (ACTIVE)';
 $currentLines[] = 'Generated: ' . date('d M Y H:i');
 $currentLines[] = '';
-$currentLines[] = 'Name | Contact | Branch | Voter ID | Membership ID';
-$currentLines[] = str_repeat('-', 105);
+$currentLines[] = 'Name | Membership ID | Phone | Branch | Submitted';
+$currentLines[] = str_repeat('-', 115);
 foreach ($rows as $r) {
-    $line = trim((string)$r['firstname'] . ' ' . (string)$r['surname']);
-    $line .= ' | ' . (string)$r['phone_no'];
-    $line .= ' | ' . (string)$r['branch'];
-    $line .= ' | ' . (string)$r['voter_id_no'];
-    $line .= ' | ' . (string)$r['membership_id'];
-    if (strlen($line) > 150) {
-        $line = substr($line, 0, 147) . '...';
+    $line = trim((string)($r['firstname'] ?? '') . ' ' . (string)($r['surname'] ?? ''));
+    $line .= ' | ' . (string)($r['membership_id'] ?? '');
+    $line .= ' | ' . (string)($r['phone_no'] ?? '');
+    $line .= ' | ' . (string)($r['branch'] ?? '');
+    $line .= ' | ' . date('d M Y H:i', strtotime((string)($r['created_at'] ?? '')));
+    if (strlen($line) > 155) {
+        $line = substr($line, 0, 152) . '...';
     }
     $currentLines[] = $line;
     if (count($currentLines) >= $maxLinesPerPage) {
@@ -88,14 +99,14 @@ if ($currentLines) {
     $pages[] = $currentLines;
 }
 if (!$pages) {
-    $pages[] = ['BRANCH EXECUTIVE EXPORT', 'No records found.'];
+    $pages[] = ['MEMBERSHIP EXPORT', 'No active records found.'];
 }
 
 $objects = [];
 $objects[] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n";
 $kids = [];
 $objIndex = 3;
-foreach ($pages as $idx => $lines) {
+foreach ($pages as $lines) {
     $pageObj = $objIndex++;
     $contentObj = $objIndex++;
     $kids[] = $pageObj . ' 0 R';
@@ -105,9 +116,9 @@ foreach ($pages as $idx => $lines) {
     foreach ($lines as $line) {
         $contentLines[] = '0.12 0.12 0.12 rg';
         $contentLines[] = 'BT';
-        $contentLines[] = '/F1 10 Tf';
+        $contentLines[] = '/F1 9 Tf';
         $contentLines[] = sprintf('1 0 0 1 %.2f %.2f Tm', $margin, $y);
-        $contentLines[] = '(' . pdf_escape_export($line) . ') Tj';
+        $contentLines[] = '(' . pdf_escape_bulk($line) . ') Tj';
         $contentLines[] = 'ET';
         $y -= $lineHeight;
     }
@@ -132,7 +143,7 @@ for ($i = 1; $i <= count($objects); $i++) {
 $pdf .= "trailer << /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF";
 
 header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="branch_executives_' . $now . '.pdf"');
+header('Content-Disposition: attachment; filename="members_export_' . $now . '.pdf"');
 header('Content-Length: ' . strlen($pdf));
 echo $pdf;
 exit;
