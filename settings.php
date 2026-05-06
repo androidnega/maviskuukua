@@ -58,9 +58,10 @@ $values = [
   <p class="text-slate-500 mt-1 text-sm">Configure outbound SMS and OTP for staff onboarding. Keys are stored locally in SQLite.</p>
   <?php if ($notice): ?><div class="mt-4 p-4  bg-emerald-50 text-emerald-800 border border-emerald-200"><?=h($notice)?></div><?php endif; ?>
 
-  <div class="mt-6 p-4 bg-amber-50 border border-amber-200 text-amber-950 text-sm">
+  <div class="mt-6 p-4 bg-amber-50 border border-amber-200 text-amber-950 text-sm space-y-2">
     <p class="font-semibold">OTP requires your <strong>Main SMS API key</strong></p>
-    <p class="mt-1 text-amber-900/90">Arkesel treats OTP separately from plain SMS: use the primary API key from your dashboard. Sub-keys (“multiple API keys”) return <code class="bg-white/80 px-1 rounded">401 Invalid key</code> for OTP.</p>
+    <p class="text-amber-900/90">Sub-keys (“multiple API keys”) often return <strong>Invalid key</strong> for OTP — paste the Main SMS key from the Arkesel dashboard.</p>
+    <p class="text-amber-900/90">If you see <strong>Insufficient balance / code 1007</strong>, your SMS <em>send credits</em> are empty: OTP charges the SMS bundle, not only your main wallet. Purchase or top up an SMS package in Arkesel, then retry the test.</p>
   </div>
 
   <form method="post" class="mt-8 bg-white  border border-slate-200 p-6 md:p-8 space-y-5">

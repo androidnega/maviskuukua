@@ -67,11 +67,56 @@ function arkesel_send_sms(PDO $pdo, string $e164NoPlus, string $message): array 
     if ($resp === false) {
         return ['ok' => false, 'error' => $cerr ?: 'SMS request failed'];
     }
+    $decoded = json_decode((string)$resp, true);
+    if ($code >= 200 && $code < 300 && is_array($decoded)) {
+        $c = $decoded['code'] ?? null;
+        if ($c === '1000' || $c === 1000) {
+            return ['ok' => true, 'response' => $resp];
+        }
+        $msg = trim((string)($decoded['message'] ?? ''));
+
+        return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $code, $resp, 'SMS')];
+    }
     if ($code >= 200 && $code < 300) {
         return ['ok' => true, 'response' => $resp];
     }
 
     return ['ok' => false, 'error' => 'HTTP ' . $code . ': ' . $resp];
+}
+
+/**
+ * Human-readable message for Arkesel JSON error bodies (SMS / OTP).
+ *
+ * @param array<string,mixed>|null $decoded
+ */
+function arkesel_api_user_message(?array $decoded, int $httpCode, string $rawResp, string $channelLabel = 'API'): string {
+    $msg = is_array($decoded) ? trim((string)($decoded['message'] ?? '')) : '';
+    $c = is_array($decoded) ? ($decoded['code'] ?? null) : null;
+    $status = is_array($decoded) ? trim((string)($decoded['status'] ?? '')) : '';
+
+    if (
+        $httpCode === 401
+        || ($msg !== '' && stripos($msg, 'invalid key') !== false)
+        || ($status !== '' && strtolower($status) === 'error' && stripos($msg, 'invalid key') !== false)
+    ) {
+        return 'Authentication failed'
+            . ($c !== null ? ' (code ' . $c . ')' : '')
+            . '. Paste the Main SMS API key from Arkesel (Dashboard → API). '
+            . 'OTP does not accept “multiple” sub-keys. Remove spaces/newlines from the key. '
+            . 'If it still fails, create a fresh Main key in the dashboard.';
+    }
+
+    if ($c === '1007' || $c === 1007) {
+        return 'Insufficient SMS credits for ' . $channelLabel . ' (Arkesel code 1007). '
+            . 'OTP and SMS deduct SMS units from your SMS balance — a large “main wallet” balance alone is not enough if your SMS package is empty. '
+            . 'In Arkesel: purchase or top up an SMS bundle, then retry.';
+    }
+
+    if ($msg !== '') {
+        return 'Arkesel ' . $channelLabel . ': ' . $msg . ($c !== null ? ' (code ' . $c . ')' : '') . ' [HTTP ' . $httpCode . ']';
+    }
+
+    return 'HTTP ' . $httpCode . ': ' . $rawResp;
 }
 
 /**
@@ -104,8 +149,22 @@ function arkesel_otp_build_payload(PDO $pdo, string $e164NoPlus, string $message
 }
 
 /**
+ * True when Arkesel JSON indicates success (HTTP may still be 200 on errors).
+ *
+ * @param array<string,mixed>|null $decoded
+ */
+function arkesel_response_is_success(?array $decoded): bool {
+    if (!is_array($decoded)) {
+        return false;
+    }
+    $c = $decoded['code'] ?? null;
+
+    return $c === '1000' || $c === 1000;
+}
+
+/**
  * Arkesel managed OTP: message MUST contain %otp_code% placeholder.
- * Uses Main SMS API key as api-key header (OTP does not work with Arkesel "multiple" sub-keys).
+ * Retries different auth header combinations only on HTTP 401 (invalid key).
  *
  * @return array{ok: bool, error?: string, response?: string, raw?: string}
  */
@@ -144,45 +203,55 @@ function arkesel_otp_generate(PDO $pdo, string $e164NoPlus, string $messageWithP
         return ['resp' => $resp, 'code' => $code, 'cerr' => $cerr];
     };
 
-    $headersApiKey = [
-        'Content-Type: application/json',
-        'api-key: ' . $apiKey,
+    $authVariants = [
+        [
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey,
+            'Authorization: Bearer ' . $apiKey,
+        ],
+        [
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey,
+        ],
+        [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+        ],
     ];
-    $headersBearer = [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey,
-    ];
 
-    $r = $doRequest($endpoint, $payload, $headersApiKey);
-    $resp = $r['resp'];
-    $code = $r['code'];
+    $lastAuthError = '';
 
-    if ($resp === false) {
-        return ['ok' => false, 'error' => $r['cerr'] ?: 'OTP request failed'];
-    }
-
-    // Some accounts accept Bearer for OTP; retry on 401 Invalid key
-    if ($code === 401) {
-        $r2 = $doRequest($endpoint, $payload, $headersBearer);
-        if ($r2['resp'] !== false) {
-            $resp = $r2['resp'];
-            $code = $r2['code'];
+    foreach ($authVariants as $headers) {
+        $r = $doRequest($endpoint, $payload, $headers);
+        if ($r['resp'] === false) {
+            return ['ok' => false, 'error' => $r['cerr'] ?: 'OTP request failed'];
         }
+
+        $resp = $r['resp'];
+        $http = $r['code'];
+        $decoded = json_decode((string)$resp, true);
+
+        if ($http >= 200 && $http < 300 && is_array($decoded)) {
+            if (arkesel_response_is_success($decoded)) {
+                return ['ok' => true, 'response' => $resp, 'raw' => $resp];
+            }
+
+            // HTTP 200 but application error (1007 balance, 1002 template, etc.) — do not retry auth
+            return ['ok' => false, 'error' => arkesel_api_user_message($decoded, $http, $resp, 'OTP'), 'raw' => $resp];
+        }
+
+        if ($http === 401) {
+            $lastAuthError = arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP');
+
+            continue;
+        }
+
+        return ['ok' => false, 'error' => arkesel_api_user_message(is_array($decoded) ? $decoded : null, $http, $resp, 'OTP'), 'raw' => $resp];
     }
 
-    $decoded = json_decode((string)$resp, true);
-    if (is_array($decoded) && (($decoded['code'] ?? '') === '1000' || ($decoded['code'] ?? 0) === 1000)) {
-        return ['ok' => true, 'response' => $resp, 'raw' => $resp];
-    }
-
-    if ($code >= 200 && $code < 300 && !is_array($decoded)) {
-        return ['ok' => true, 'response' => $resp, 'raw' => $resp];
-    }
-
-    $errMsg = 'HTTP ' . $code . ': ' . $resp;
-    if ($code === 401) {
-        $errMsg .= ' — Use the Main SMS API key from Arkesel (OTP does not work with multiple/sub-keys).';
-    }
-
-    return ['ok' => false, 'error' => $errMsg, 'raw' => $resp];
+    return [
+        'ok' => false,
+        'error' => $lastAuthError !== '' ? $lastAuthError : 'OTP authentication failed after retries. Check API key.',
+        'raw' => null,
+    ];
 }
