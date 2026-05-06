@@ -203,7 +203,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $createdAt
                 ]);
                 $id = (int)$pdo->lastInsertId();
-                $member = $pdo->query('SELECT * FROM members WHERE id = ' . $id)->fetch();
                 $pdfOverrides = [
                     'firstname' => $old['firstname'],
                     'surname' => $old['surname'],
@@ -223,15 +222,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'membership_id' => strtoupper($old['membership_id']),
                     'created_at' => $createdAt,
                 ];
+                if (!isset($_SESSION['pdf_overrides']) || !is_array($_SESSION['pdf_overrides'])) {
+                    $_SESSION['pdf_overrides'] = [];
+                }
                 $_SESSION['pdf_overrides'][$id] = $pdfOverrides;
                 save_member_pdf_payload($id, $pdfOverrides);
-                try {
-                    $pdfPath = create_member_pdf($member, $pdfOverrides);
-                    $update = $pdo->prepare('UPDATE members SET pdf_path = ? WHERE id = ?');
-                    $update->execute([$pdfPath, $id]);
-                } catch (Throwable $pdfError) {
-                    error_log('PDF generation failed for member ' . $id . ': ' . $pdfError->getMessage());
-                }
+                // Generate PDF on success.php to avoid nginx/PHP-FPM timeouts (502) from one heavy POST.
+                $_SESSION['pending_pdf_member_id'] = $id;
                 redirect('success.php?id=' . $id);
             }
         } catch (Throwable $e) {
