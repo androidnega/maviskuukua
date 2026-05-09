@@ -42,7 +42,7 @@ render_public_layout_start('Mavis Kuukua Bissue | Official Website', 'home');
       <div class="reveal">
         <div class="flex justify-center rounded-[2rem] border border-line bg-slate-50 p-3 lg:justify-end">
           <?php if ($heroSrc !== ''): ?>
-            <div class="h-[min(68vh,520px)] w-full max-w-sm overflow-hidden rounded-[1.5rem] border border-line shadow-sm sm:max-w-md lg:h-[min(72vh,580px)] lg:max-w-none">
+            <div class="h-[min(58vh,440px)] w-full max-w-sm overflow-hidden rounded-[1.5rem] border border-line shadow-sm sm:max-w-md lg:h-[min(62vh,480px)] lg:max-w-none">
               <img src="<?= h($heroSrc) ?>" alt="Kuukua Cares — Mavis Kuukua Bissue" class="h-full w-full object-cover object-center" />
             </div>
           <?php else: ?>

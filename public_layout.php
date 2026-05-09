@@ -9,8 +9,8 @@ require_once __DIR__ . '/public_header.php';
 
 function public_site_hero_image_src(): string {
     $candidates = [
-        'assets/kuukuabissuesidepicture.jpg',
         'assets/kuukuacares.jpg',
+        'assets/kuukuabissuesidepicture.jpg',
         'assets/hero-campaign.png',
         'assets/hero-campaign.jpg',
         'assets/hero.jpg',
