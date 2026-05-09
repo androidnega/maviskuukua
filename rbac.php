@@ -81,6 +81,18 @@ function can_export_bulk_members(): bool {
     return is_super_admin() || is_coordinator();
 }
 
+/** Super admin and coordinators may create and edit public news posts. */
+function can_manage_news(): bool {
+    return is_super_admin() || is_coordinator();
+}
+
+function require_news_management(): void {
+    if (!can_manage_news()) {
+        flash('admin_notice', 'You do not have access to news management.');
+        redirect('admin.php');
+    }
+}
+
 function members_active_clause(string $alias = ''): string {
     $p = $alias !== '' ? $alias . '.' : '';
 

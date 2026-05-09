@@ -34,6 +34,9 @@ function render_layout_start(string $title, string $active = 'home'): void {
         $menu[] = ['key' => 'branch_executive', 'label' => 'Branch Executive', 'href' => 'membership_database.php', 'icon' => 'fa-user-tie'];
     }
     $menu[] = ['key' => 'received_list', 'label' => 'Registrations', 'href' => 'received_list.php', 'icon' => 'fa-table-list'];
+    if (can_manage_news()) {
+        $menu[] = ['key' => 'news_admin', 'label' => 'News & Posts', 'href' => 'admin_news.php', 'icon' => 'fa-newspaper'];
+    }
     if (can_manage_staff_accounts()) {
         $menu[] = ['key' => 'manage_staff', 'label' => 'Staff Accounts', 'href' => 'manage_staff.php', 'icon' => 'fa-user-shield'];
     }

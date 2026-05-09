@@ -10,10 +10,14 @@ define('STORAGE_DIR', BASE_DIR . '/storage');
 define('DB_PATH', resolve_db_path());
 define('PDF_DIR', resolve_pdf_dir());
 define('PHOTO_DIR', STORAGE_DIR . '/photos');
+define('NEWS_DIR', STORAGE_DIR . '/news');
 
 if (!is_dir(STORAGE_DIR)) mkdir(STORAGE_DIR, 0775, true);
 if (!is_dir(PDF_DIR)) mkdir(PDF_DIR, 0775, true);
 if (!is_dir(PHOTO_DIR)) mkdir(PHOTO_DIR, 0775, true);
+if (!is_dir(NEWS_DIR)) mkdir(NEWS_DIR, 0775, true);
+if (!is_dir(NEWS_DIR . '/uploads')) mkdir(NEWS_DIR . '/uploads', 0775, true);
+if (!is_dir(NEWS_DIR . '/featured')) mkdir(NEWS_DIR . '/featured', 0775, true);
 
 function resolve_db_path(): string {
     $primaryPath = STORAGE_DIR . '/database.sqlite';
@@ -231,6 +235,21 @@ function migrate_system_extensions(PDO $pdo): void {
     if (!in_array('deleted_by_admin_id', $memCols, true)) {
         $pdo->exec('ALTER TABLE members ADD COLUMN deleted_by_admin_id INTEGER');
     }
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS news_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        excerpt TEXT,
+        body_html TEXT NOT NULL DEFAULT \'\',
+        featured_image_path TEXT,
+        category TEXT NOT NULL DEFAULT \'General\',
+        published INTEGER NOT NULL DEFAULT 0,
+        author_admin_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_news_posts_published_created ON news_posts(published, created_at)');
 
 }
 

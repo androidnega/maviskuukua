@@ -5,23 +5,12 @@ declare(strict_types=1);
  * Requires config.php (and typically tracking.php) loaded first.
  */
 
-/**
- * @return list<array{key:string,label:string,href:string}>
- */
-function public_site_nav_items(): array {
-    return [
-        ['key' => 'home', 'label' => 'Home', 'href' => 'index.php'],
-        ['key' => 'about', 'label' => 'About Us', 'href' => 'about.php'],
-        ['key' => 'vision', 'label' => 'Vision', 'href' => 'vision.php'],
-        ['key' => 'projects', 'label' => 'Projects', 'href' => 'projects.php'],
-        ['key' => 'news', 'label' => 'News', 'href' => 'news.php'],
-        ['key' => 'membership', 'label' => 'Membership', 'href' => 'register.php'],
-        ['key' => 'contact', 'label' => 'Contact Us', 'href' => 'contact.php'],
-    ];
-}
+require_once __DIR__ . '/public_header.php';
 
 function public_site_hero_image_src(): string {
     $candidates = [
+        'assets/kuukuabissuesidepicture.jpg',
+        'assets/kuukuacares.jpg',
         'assets/hero-campaign.png',
         'assets/hero-campaign.jpg',
         'assets/hero.jpg',
@@ -73,7 +62,7 @@ function render_public_layout_start(string $title, string $active, ?string $meta
     };
   </script>
   <style>
-    :root { --nav-h: 76px; }
+    :root { --nav-h: 5rem; }
 
     html, body, main, section, header, footer {
       background: #ffffff !important;
@@ -90,7 +79,7 @@ function render_public_layout_start(string $title, string $active, ?string $meta
     }
 
     .public-main {
-      padding-top: 7rem;
+      padding-top: calc(var(--nav-h) + 1.75rem);
     }
 
     .section-padding {
@@ -113,18 +102,6 @@ function render_public_layout_start(string $title, string $active, ?string $meta
       transform: translateY(-4px);
       border-color: rgba(8, 127, 91, 0.35);
       box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
-    }
-
-    .nav-link {
-      color: #475569;
-      font-weight: 600;
-      font-size: 0.92rem;
-      transition: color 180ms ease;
-    }
-
-    .nav-link:hover,
-    .nav-link.active {
-      color: #087F5B;
     }
 
     .btn-primary {
@@ -176,7 +153,7 @@ function render_public_layout_start(string $title, string $active, ?string $meta
     .float-menu-panel {
       position: relative;
       z-index: 51;
-      filter: drop-shadow(0 12px 32px rgba(15, 23, 42, 0.12));
+      filter: drop-shadow(0 6px 20px rgba(15, 23, 42, 0.08));
     }
 
     .float-menu-item {
@@ -203,6 +180,16 @@ function render_public_layout_start(string $title, string $active, ?string $meta
     #floatToggle {
       position: relative;
       z-index: 51;
+      transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .float-menu.open #floatToggle {
+      background-color: #475569;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
+    }
+
+    #floatToggle:active {
+      transform: scale(0.96);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -216,48 +203,64 @@ function render_public_layout_start(string $title, string $active, ?string $meta
         transform: none;
       }
     }
+
+    .news-body {
+      font-size: 1.0625rem;
+      line-height: 1.75;
+      color: #334155;
+    }
+    .news-body > * + * {
+      margin-top: 1.25em;
+    }
+    .news-body h1, .news-body h2, .news-body h3, .news-body h4 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      line-height: 1.25;
+    }
+    .news-body h1 { font-size: 2rem; }
+    .news-body h2 { font-size: 1.65rem; }
+    .news-body h3 { font-size: 1.35rem; }
+    .news-body ul, .news-body ol {
+      padding-left: 1.5rem;
+    }
+    .news-body li + li { margin-top: 0.35em; }
+    .news-body a {
+      color: #087F5B;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .news-body img, .news-body video, .news-body audio {
+      max-width: 100%;
+      height: auto;
+    }
+    .news-body video { border-radius: 0.75rem; background: #0f172a; }
+    .news-body blockquote {
+      border-left: 4px solid #087F5B;
+      padding-left: 1rem;
+      margin: 1.25rem 0;
+      color: #475569;
+      font-style: italic;
+    }
+    .news-body table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    .news-body th, .news-body td {
+      border: 1px solid #e5e7eb;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
-  <div id="floatMenuBackdrop" class="float-menu-backdrop fixed inset-0 z-[90] bg-slate-900/35 backdrop-blur-md" aria-hidden="true"></div>
+  <div id="floatMenuBackdrop" class="float-menu-backdrop fixed inset-0 z-[90] bg-neutral-950/20 backdrop-blur-[2px]" aria-hidden="true"></div>
 
-  <header class="fixed left-0 right-0 top-0 z-[100] border-b border-line bg-white/95 backdrop-blur">
-    <nav class="mx-auto flex h-[var(--nav-h)] max-w-7xl items-center justify-between px-5 lg:px-8" aria-label="Main navigation">
-      <a href="index.php" class="flex items-center gap-3" aria-label="Mavis Kuukua Bissue home">
-        <span class="grid h-10 w-10 place-items-center rounded-full border border-emerald-700 text-emerald-700">
-          <i class="fa-solid fa-leaf"></i>
-        </span>
-        <span class="leading-tight">
-          <span class="block text-sm font-bold text-slate-900">Mavis Kuukua Bissue</span>
-          <span class="block text-xs font-medium text-slate-500">Official Website</span>
-        </span>
-      </a>
-
-      <div class="hidden items-center gap-6 lg:flex">
-        <?php foreach (public_site_nav_items() as $item):
-            $isActive = $item['key'] === $active;
-            $cls = 'nav-link' . ($isActive ? ' active' : '');
-            ?>
-          <a class="<?= h($cls) ?>" href="<?= h($item['href']) ?>"><?= h($item['label']) ?></a>
-        <?php endforeach; ?>
-      </div>
-
-      <button id="mobileMenuBtn" class="grid h-10 w-10 place-items-center rounded-lg border border-line text-slate-700 lg:hidden" type="button" aria-label="Open mobile menu" aria-expanded="false">
-        <i class="fa-solid fa-bars"></i>
-      </button>
-    </nav>
-
-    <div id="mobileMenu" class="hidden border-t border-line bg-white px-5 py-4 lg:hidden">
-      <div class="mx-auto grid max-w-7xl gap-2">
-        <?php foreach (public_site_nav_items() as $item):
-            $isActive = $item['key'] === $active;
-            $cls = 'nav-link rounded-lg px-3 py-3' . ($isActive ? ' active' : '');
-            ?>
-          <a class="<?= h($cls) ?>" href="<?= h($item['href']) ?>"><?= h($item['label']) ?></a>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  </header>
+  <?php render_public_site_header($active); ?>
 <?php
 }
 
@@ -271,23 +274,18 @@ function render_public_layout_end(): void {
         <a href="about.php" class="hover:text-emerald-700">About</a>
         <a href="register.php" class="hover:text-emerald-700">Membership</a>
         <a href="contact.php" class="hover:text-emerald-700">Contact</a>
-        <a href="login.php" class="hover:text-emerald-700">Staff login</a>
       </div>
     </div>
   </footer>
 
-  <div id="floatMenu" class="float-menu fixed bottom-6 right-6 z-[110] flex flex-col items-end gap-3">
-    <div class="float-menu-panel flex flex-col items-end gap-2">
-      <a href="index.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">Home Page</a>
-      <a href="about.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">About Us</a>
-      <a href="vision.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">Vision</a>
-      <a href="projects.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">Projects</a>
-      <a href="news.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">News</a>
-      <a href="contact.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none ring-emerald-600 focus-visible:ring-2">Contact Us</a>
-      <a href="register.php" tabindex="-1" class="float-menu-item float-menu-focusable rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 outline-none ring-emerald-600 focus-visible:ring-2">Membership</a>
+  <div id="floatMenu" class="float-menu fixed bottom-5 right-4 z-[110] flex flex-col items-end gap-2.5 sm:bottom-6 sm:right-6">
+    <div class="float-menu-panel flex flex-col items-end gap-1.5">
+      <?php foreach (public_site_nav_items() as $item): ?>
+      <a href="<?= h($item['href']) ?>" tabindex="-1" class="float-menu-item float-menu-focusable rounded-xl border border-slate-200/90 bg-white/95 px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none ring-slate-400/40 focus-visible:ring-2 <?= $item['key'] === 'membership' ? ' border-emerald-200 bg-emerald-50/90 text-emerald-900 font-semibold' : '' ?>"><?= h($item['label']) ?></a>
+      <?php endforeach; ?>
     </div>
-    <button id="floatToggle" class="grid h-14 w-14 place-items-center rounded-full bg-emerald-700 text-white shadow-lg" type="button" aria-label="Open page shortcuts" aria-expanded="false" aria-controls="floatMenu">
-      <i id="plusIcon" class="fa-solid fa-plus text-lg"></i>
+    <button id="floatToggle" class="grid h-11 w-11 place-items-center rounded-full bg-slate-700 text-white shadow-md ring-1 ring-slate-900/10 sm:h-12 sm:w-12" type="button" aria-label="Quick links" aria-expanded="false" aria-controls="floatMenu">
+      <i id="plusIcon" class="fa-solid fa-plus text-base opacity-95" aria-hidden="true"></i>
     </button>
   </div>
 
@@ -307,7 +305,7 @@ function render_public_layout_end(): void {
         if (open && mobileMenu && mobileMenuBtn && !mobileMenu.classList.contains('hidden')) {
           mobileMenu.classList.add('hidden');
           mobileMenuBtn.setAttribute('aria-expanded', 'false');
-          mobileMenuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+          mobileMenuBtn.innerHTML = '<i class="fa-solid fa-bars text-lg" aria-hidden="true"></i>';
         }
         floatMenu.classList.toggle('open', open);
         backdrop.classList.toggle('is-open', open);
@@ -329,7 +327,9 @@ function render_public_layout_end(): void {
           var isOpen = !mobileMenu.classList.contains('hidden');
           mobileMenu.classList.toggle('hidden');
           mobileMenuBtn.setAttribute('aria-expanded', String(!isOpen));
-          mobileMenuBtn.innerHTML = isOpen ? '<i class="fa-solid fa-bars"></i>' : '<i class="fa-solid fa-xmark"></i>';
+          mobileMenuBtn.innerHTML = isOpen
+            ? '<i class="fa-solid fa-bars text-lg" aria-hidden="true"></i>'
+            : '<i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>';
         });
       }
 
