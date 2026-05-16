@@ -27,11 +27,11 @@ render_public_layout_start('Mavis Kuukua Bissue | Official Website', 'home');
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <a href="#explore" class="btn-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold">
-            Next
+            Explore the site
             <i class="fa-solid fa-arrow-down"></i>
           </a>
           <a href="vision.php" class="btn-secondary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold">
-            Explore Vision
+            Our vision
             <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
