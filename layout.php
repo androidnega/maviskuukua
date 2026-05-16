@@ -1,8 +1,9 @@
 <?php
 require_once 'config.php';
+require_once __DIR__ . '/contact_lib.php';
 
 /**
- * @param string $active Menu key: dashboard, branch_executive, received_list, manage_staff, audit, settings
+ * @param string $active Menu key: dashboard, branch_executive, received_list, contact_inbox, manage_staff, audit, settings
  */
 function render_layout_start(string $title, string $active = 'home'): void {
     if (!is_admin()) {
@@ -28,14 +29,19 @@ function render_layout_start(string $title, string $active = 'home'): void {
         $staffRemovalPending = 0;
     }
 
+    $contactInboxUnread = contact_unread_count(db());
+
     $menu = [];
     $menu[] = ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => 'admin.php', 'icon' => 'fa-chart-line'];
     if (can_access_branch_executive_data()) {
         $menu[] = ['key' => 'branch_executive', 'label' => 'Branch Executive', 'href' => 'membership_database.php', 'icon' => 'fa-user-tie'];
     }
     $menu[] = ['key' => 'received_list', 'label' => 'Registrations', 'href' => 'received_list.php', 'icon' => 'fa-table-list'];
+    $menu[] = ['key' => 'contact_inbox', 'label' => 'Contact messages', 'href' => 'admin_contact_messages.php', 'icon' => 'fa-envelope-open-text'];
     if (can_manage_news()) {
         $menu[] = ['key' => 'news_admin', 'label' => 'News & Posts', 'href' => 'admin_news.php', 'icon' => 'fa-newspaper'];
+        $menu[] = ['key' => 'projects_admin', 'label' => 'Projects', 'href' => 'admin_projects.php', 'icon' => 'fa-hammer'];
+        $menu[] = ['key' => 'slideshow_admin', 'label' => 'Home Slideshow', 'href' => 'admin_slideshow.php', 'icon' => 'fa-images'];
     }
     if (can_manage_staff_accounts()) {
         $menu[] = ['key' => 'manage_staff', 'label' => 'Staff Accounts', 'href' => 'manage_staff.php', 'icon' => 'fa-user-shield'];
@@ -62,7 +68,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?=h($title)?></title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <?php require_once __DIR__ . '/public_header.php'; site_favicon_links(); ?>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
@@ -111,6 +117,9 @@ function render_layout_start(string $title, string $active = 'home'): void {
             </span>
             <?php if ($item['key'] === 'received_list' && $unreadCount > 0): ?>
               <span class="min-w-6 h-6 px-2  bg-red-500 text-white text-xs flex items-center justify-center font-bold"><?=$unreadCount?></span>
+            <?php endif; ?>
+            <?php if ($item['key'] === 'contact_inbox' && $contactInboxUnread > 0): ?>
+              <span class="min-w-6 h-6 px-2  bg-amber-500 text-white text-xs flex items-center justify-center font-bold"><?=$contactInboxUnread?></span>
             <?php endif; ?>
             <?php if ($item['key'] === 'manage_staff' && $staffRemovalPending > 0): ?>
               <span class="min-w-6 h-6 px-2  bg-amber-500 text-white text-xs flex items-center justify-center font-bold"><?=$staffRemovalPending?></span>

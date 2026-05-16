@@ -2,6 +2,9 @@
 require 'layout.php';
 require_admin();
 $pdo = db();
+
+$contactInboxUnread = contact_unread_count($pdo);
+$contactRecent = contact_recent_messages($pdo, 7);
 $active = members_active_clause();
 
 $total = (int)$pdo->query("SELECT COUNT(*) AS total FROM members WHERE $active")->fetch()['total'];
@@ -136,6 +139,43 @@ if (is_field_officer()) {
       </a>
       <?php endif; ?>
     </div>
+  </div>
+
+  <div class="bg-white border <?=h($cardBorder)?> mt-6 p-6">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="font-bold text-lg text-slate-900">Contact messages</h2>
+        <p class="text-xs text-slate-500 mt-1">From the public contact form · <?=h(CONTACT_PUBLIC_EMAIL)?></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <?php if ($contactInboxUnread > 0): ?>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-200">
+            <i class="fa-solid fa-envelope"></i> <?= (int) $contactInboxUnread ?> new
+          </span>
+        <?php endif; ?>
+        <a href="admin_contact_messages.php" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-50">
+          Open inbox
+        </a>
+      </div>
+    </div>
+    <?php if (count($contactRecent) === 0): ?>
+      <p class="mt-4 text-sm text-slate-500">No messages yet. They will appear here when visitors use the contact page.</p>
+    <?php else: ?>
+      <ul class="mt-4 divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+        <?php foreach ($contactRecent as $cm): ?>
+          <li class="flex flex-wrap items-start gap-3 bg-white px-4 py-3 hover:bg-slate-50/80">
+            <div class="min-w-0 flex-1">
+              <a href="admin_contact_messages.php?id=<?= (int) ($cm['id'] ?? 0) ?>" class="font-semibold text-slate-900 hover:text-emerald-700"><?=h((string) ($cm['subject'] ?? ''))?></a>
+              <p class="text-xs text-slate-500 mt-0.5"><?=h((string) ($cm['full_name'] ?? ''))?> · <?=h((string) ($cm['email'] ?? ''))?></p>
+              <p class="text-[11px] text-slate-400 mt-1"><?=h((string) ($cm['created_at'] ?? ''))?></p>
+            </div>
+            <?php if (empty($cm['read_at'])): ?>
+              <span class="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">New</span>
+            <?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
   </div>
 
   <?php if ($visitorStats !== null): ?>

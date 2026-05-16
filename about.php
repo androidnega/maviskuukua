@@ -10,7 +10,7 @@ render_public_layout_start('About Us | Mavis Kuukua Bissue', 'about', 'About Hon
 ?>
 <main class="public-main">
   <section class="section-padding border-t border-line">
-    <div class="mx-auto max-w-7xl px-5 lg:px-8">
+    <div class="<?= h(public_page_container_class()) ?>">
       <div class="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div class="reveal">
           <p class="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-emerald-700">About Us</p>

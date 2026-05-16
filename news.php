@@ -15,7 +15,7 @@ render_public_layout_start('News | Mavis Kuukua Bissue', 'news', 'Latest officia
 ?>
 <main class="public-main">
   <section class="section-padding border-t border-line">
-    <div class="mx-auto max-w-7xl px-5 lg:px-8">
+    <div class="<?= h(public_page_container_class()) ?>">
       <div class="mx-auto max-w-3xl text-center reveal">
         <p class="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-emerald-700">News</p>
         <h1 class="section-title font-display text-3xl font-bold text-slate-950 md:text-5xl">Latest official updates.</h1>

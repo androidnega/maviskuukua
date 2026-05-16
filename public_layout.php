@@ -26,6 +26,22 @@ function public_site_hero_image_src(): string {
 }
 
 /**
+ * Homepage hero slideshow — flyer artwork under assets/slideshow/.
+ *
+ * @return list<array{src: string, alt: string}>
+ */
+function public_site_hero_slides(): array {
+    require_once __DIR__ . '/site_content_lib.php';
+
+    return hero_slides_list_public(db());
+}
+
+/** Standard content width for all public marketing pages (matches home). */
+function public_page_container_class(): string {
+    return 'mx-auto max-w-7xl px-5 lg:px-8';
+}
+
+/**
  * @param string $active One of: home, about, vision, projects, news, contact (not membership)
  */
 function render_public_layout_start(string $title, string $active, ?string $metaDescription = null): void {
@@ -38,7 +54,7 @@ function render_public_layout_start(string $title, string $active, ?string $meta
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="<?= h($desc) ?>" />
   <title><?= h($title) ?></title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <?php site_favicon_links(); ?>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />

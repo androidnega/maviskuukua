@@ -37,7 +37,7 @@ if ($pendingId === $id) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Thank you — Registration received</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <?php require_once __DIR__ . '/public_header.php'; site_favicon_links(); ?>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 antialiased">

@@ -5,6 +5,8 @@ require_once __DIR__ . '/rbac.php';
 require_once __DIR__ . '/sms.php';
 
 define('APP_NAME', 'Mavis Kuukua Bissue Membership System');
+/** Public enquiries email shown on the contact page. */
+define('CONTACT_PUBLIC_EMAIL', 'info@kuukuacares.com');
 define('BASE_DIR', __DIR__);
 define('STORAGE_DIR', BASE_DIR . '/storage');
 define('DB_PATH', resolve_db_path());
@@ -18,6 +20,8 @@ if (!is_dir(PHOTO_DIR)) mkdir(PHOTO_DIR, 0775, true);
 if (!is_dir(NEWS_DIR)) mkdir(NEWS_DIR, 0775, true);
 if (!is_dir(NEWS_DIR . '/uploads')) mkdir(NEWS_DIR . '/uploads', 0775, true);
 if (!is_dir(NEWS_DIR . '/featured')) mkdir(NEWS_DIR . '/featured', 0775, true);
+if (!is_dir(BASE_DIR . '/assets/slideshow')) mkdir(BASE_DIR . '/assets/slideshow', 0775, true);
+if (!is_dir(BASE_DIR . '/assets/projects')) mkdir(BASE_DIR . '/assets/projects', 0775, true);
 
 function resolve_db_path(): string {
     $primaryPath = STORAGE_DIR . '/database.sqlite';
@@ -251,6 +255,22 @@ function migrate_system_extensions(PDO $pdo): void {
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_news_posts_published_created ON news_posts(published, created_at)');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS contact_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        ip TEXT,
+        created_at TEXT NOT NULL,
+        read_at TEXT
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_contact_messages_created ON contact_messages(created_at)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_contact_messages_unread ON contact_messages(read_at)');
+
+    require_once __DIR__ . '/site_content_lib.php';
+    site_content_init_schema($pdo);
+    site_content_seed_if_empty($pdo);
 }
 
 function h(?string $value): string { return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8'); }

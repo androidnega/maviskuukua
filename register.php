@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 function val($key, $old) { return h(is_array($old[$key] ?? null) ? '' : ($old[$key] ?? '')); }
 function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-600 text-sm mt-1">'.h($errors[$key]).'</p>' : ''; }
 ?>
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Register</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><script src="https://cdn.tailwindcss.com"></script></head>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Register</title><?php require_once __DIR__ . '/public_header.php'; site_favicon_links(); ?><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-slate-100 text-slate-900">
 <main class="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
   <a href="index.php" class="text-sm text-slate-600">← Home</a>

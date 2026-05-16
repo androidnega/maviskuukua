@@ -1,0 +1,353 @@
+================================================================================
+MAVIS KUUKUA BISSUE — OFFICIAL WEBSITE AUDIT
+Colors · Site purpose · Home hero slideshow · Image size guide
+Generated: 2026-05-15
+Source: public_layout.php, index.php, public_header.php, about/vision/projects pages
+================================================================================
+
+
+================================================================================
+1. BRAND & UI COLORS
+================================================================================
+
+PRIMARY BRAND (custom — use these for buttons, links, accents)
+--------------------------------------------------------------------------------
+  Name              Hex         RGB                  Usage
+  ----------------  ----------  -------------------  ---------------------------
+  Official Green    #087F5B     rgb(8, 127, 91)      Primary buttons (.btn-primary),
+                                                     link accents in articles,
+                                                     card hover border tint,
+                                                     blockquote border
+
+  Official Dark     #065F46     rgb(6, 95, 70)       Primary button hover,
+                                                     secondary button text (.btn-secondary)
+
+  Line / Border     #E5E7EB     rgb(229, 231, 235)   Cards, sections, dividers
+                                                     (Tailwind: border-line)
+
+
+BACKGROUNDS
+--------------------------------------------------------------------------------
+  Page background   #FFFFFF     rgb(255, 255, 255)   html, body, main, sections
+  Soft section      slate-50    #F8FAFC              Home “Explore” section
+  Card background   #FFFFFF     —                    .simple-card
+  Hero frame        slate-50    #F8FAFC              Area behind home hero image
+  Placeholder       slate-100   #F1F5F9              Empty image state
+
+
+TEXT COLORS
+--------------------------------------------------------------------------------
+  Body default      #334155     rgb(51, 65, 85)      body { color } — slate-700
+  Headings          slate-950   #020617              Main H1/H2
+  Subheadings       slate-800   #1E293B              Secondary emphasis
+  Paragraphs        slate-600   #475569              Body copy on cards/sections
+  Muted / meta      slate-500   #64748B              Footer, dates, hints
+  Footer links      slate-500 → hover emerald-700 #047857
+
+
+ACCENT GREEN (Tailwind emerald — used in UI classes)
+--------------------------------------------------------------------------------
+  Labels / icons    emerald-700   #047857            Section labels, icons, links
+  Strong links      emerald-800   #065F46            Email links on contact page
+  Nav active        emerald-900   #064E3B            Active nav text
+  Nav border        emerald-600   #059669            Active nav underline
+  Register CTA      emerald-800   #065F46            Header “Register” button
+  Register hover    emerald-900   #064E3B
+  Light tint        emerald-50    #ECFDF5            Membership highlight in float menu
+
+
+NEUTRALS (header, chrome, float menu)
+--------------------------------------------------------------------------------
+  Logo box          slate-900     #0F172A             Header logo square
+  Header text       slate-900     #0F172A             Site name
+  Tagline           slate-500     #64748B             “Member of Parliament · Ahanta West”
+  Header border     slate-200/90  rgba(226,232,240)  Fixed header bottom border
+  Float menu btn    slate-700     #334155            Bottom-right quick menu
+  Backdrop          neutral-950/20                   Dim overlay when menu open
+
+
+FAVICON (assets/favicon.svg)
+--------------------------------------------------------------------------------
+  Background        #0F172A     (slate-900)
+  Icon figure       #34D399     (emerald-400)
+
+
+SHADOWS & EFFECTS
+--------------------------------------------------------------------------------
+  Card hover shadow rgba(15, 23, 42, 0.06)
+  Card hover border rgba(8, 127, 91, 0.35)
+  Header accent line emerald-600 at 25% opacity (gradient)
+
+
+TYPOGRAPHY
+--------------------------------------------------------------------------------
+  Body / UI         Inter          (Google Fonts) — weights 400–800
+  Headings          Playfair Display (Google Fonts) — weights 600–700
+                    Applied via class: font-display
+
+
+DESIGN SUMMARY FOR SLIDESHOW / CREATIVE
+--------------------------------------------------------------------------------
+  • Clean, official, light theme — white base with emerald green accents.
+  • Avoid heavy dark backgrounds except logo/favicon accents.
+  • Photos should feel warm, community-focused; faces/subjects centered for crop.
+  • Rounded corners on hero: 1.5rem inner image, 2rem outer frame — match in overlays if any.
+
+
+================================================================================
+2. WHAT THE WEBSITE IS ABOUT
+================================================================================
+
+SITE IDENTITY
+--------------------------------------------------------------------------------
+  Official public website for:
+
+    Hon. Mavis Kuukua Bissue
+    Member of Parliament — Ahanta West, Ghana
+
+  Tagline (home):
+    “Leadership rooted in service, community progress, and shared development.”
+
+  Default meta description:
+    “Official website of Mavis Kuukua Bissue: leadership, service,
+     community development, and progress.”
+
+
+PURPOSE
+--------------------------------------------------------------------------------
+  1. Present leadership, vision, and community work to the public.
+  2. Share news, projects, and constituency updates.
+  3. Provide contact with the MP’s office.
+  4. Link to secure membership registration (administrative records).
+
+
+CORE VALUES (About page)
+--------------------------------------------------------------------------------
+  • Service   — community engagement, responsive leadership
+  • Integrity — honest, accountable, transparent public service
+  • Unity     — shared values and common progress
+  • Development — practical projects that improve lives
+
+
+VISION PILLARS (Vision page)
+--------------------------------------------------------------------------------
+  • Education  — learning, mentorship, access
+  • Women      — empowerment, dignity, opportunity
+  • Youth      — skills, leadership, job readiness
+  • Healthcare — community wellness, public health
+  • Development — local growth, community improvement
+
+
+FLAGSHIP PROJECTS (Projects section — Ahanta initiatives)
+--------------------------------------------------------------------------------
+  1. Ahanta Language Renaissance Project
+     — Reviving and teaching the Ahanta language
+
+  2. Ahanta Trust Fund
+     — Scholarships, welfare, community investment
+
+  3. Ahanta Heritage Months
+     — Culture, history, arts, pride across Ahanta West
+
+  4. Ahanta Sportyfest
+     — Sports, fitness, youth talent, community festivals
+
+
+SITE SECTIONS (public navigation)
+--------------------------------------------------------------------------------
+  Home        index.php
+  About       about.php
+  Vision      vision.php
+  Projects    projects.php  (+ detail pages per project)
+  News        news.php      (+ news_post.php per article)
+  Membership  register.php  (separate form layout)
+  Contact     contact.php
+
+
+CONTACT (public)
+--------------------------------------------------------------------------------
+  Email:    info@kuukuacares.com  (from config CONTACT_PUBLIC_EMAIL)
+  Phone:    +233 XX XXX XXXX       (placeholder on contact page)
+  Location: Ghana
+  Office:   Official Office
+
+
+MEMBERSHIP SYSTEM (secondary to marketing site)
+--------------------------------------------------------------------------------
+  Admin dashboard for staff: member records, PDF cards, news CMS,
+  contact messages, audit logs. Not part of the public slideshow story
+  unless a slide promotes “Register for membership.”
+
+
+SUGGESTED SLIDESHOW THEMES (content ideas)
+--------------------------------------------------------------------------------
+  Slide 1: Official portrait / community with Hon. Mavis Kuukua Bissue
+  Slide 2: Ahanta West constituency / community outreach (“Kuukua Cares”)
+  Slide 3: Projects montage (language, heritage, Sportyfest, trust fund)
+  Slide 4: Vision — education, youth, women, healthcare
+  Slide 5: Call to action — contact office or register for membership
+
+  Keep text off images when possible; site already has copy beside the hero.
+
+
+================================================================================
+3. HOME HERO “IMAGE AREA” — CURRENT LAYOUT (slideshow target)
+================================================================================
+
+LOCATION IN CODE
+--------------------------------------------------------------------------------
+  File:     index.php — section #welcome (first screen)
+  Column:   Right side of 2-column grid (left = headline + buttons)
+  Current:  Single static image via public_site_hero_image_src()
+  Default:  assets/kuukuacares.jpg (if present)
+
+HTML/CSS CONTAINER (slideshow should fill this box)
+--------------------------------------------------------------------------------
+  Outer wrapper:
+    - rounded-[2rem], border, bg-slate-50, padding 12px (p-3)
+    - Centered on mobile; right-aligned on large screens
+
+  Inner image box (where slides display):
+    - object-fit: cover
+    - object-position: center
+    - overflow: hidden
+    - border-radius: 1.5rem (rounded-[1.5rem])
+    - border + light shadow
+
+  HEIGHT (fixed by CSS — width follows grid column):
+    Mobile:   min(58vh, 440px)  — caps at 440px tall
+    Desktop:  min(62vh, 480px)  — caps at 480px tall
+
+  WIDTH (responsive):
+    Mobile:   full width, max-width 384px (max-w-sm)
+    Small:    max-width 448px (sm:max-w-md)
+    Large+:   fills ~50% of content row (no max-width cap on image)
+
+  CONTENT ROW MAX WIDTH:
+    max-w-7xl = 1280px total, minus padding ≈ 1216px usable
+    Two columns + gap → image column ≈ 560–584px wide on desktop
+
+
+COMPUTED DISPLAY SIZE (approximate — for slideshow design)
+--------------------------------------------------------------------------------
+  Viewport        Image column (W)    Image box height (H)    Display ratio
+  --------------  ------------------  ----------------------  -------------
+  Mobile 390px    ~366px (col-full)   ~440px max              ~0.83 : 1 (portrait-leaning)
+  Tablet 768px    ~448px max          ~440px                  ~1.02 : 1 (near square)
+  Desktop 1280px  ~560–584px          ~480px max              ~1.17 : 1 (slightly wide)
+
+  Images use object-cover → edges crop; keep faces/subjects in CENTER 60% safe zone.
+
+
+EXISTING ASSETS (reference dimensions)
+--------------------------------------------------------------------------------
+  kuukuacares.jpg              1066 × 1600 px  (portrait — current hero default)
+  kuukuabissuesidepicture.jpg   936 × 624 px   (landscape)
+  honkuukua.jpg                2048 × 1365 px  (landscape, high res)
+
+  Recommended: export NEW slideshow masters — do not rely on mixed orientations.
+
+
+================================================================================
+4. RECOMMENDED IMAGE SIZES FOR SLIDESHOW
+================================================================================
+
+ONE MASTER FILE PER SLIDE (simplest — works mobile + desktop)
+--------------------------------------------------------------------------------
+  Dimensions:     1200 × 1000 pixels
+  Aspect ratio:   6 : 5  (1.2 : 1)
+  Format:         JPG (quality 82–88) or WebP
+  Color profile:  sRGB
+  File size:      Target 150–350 KB per slide (max ~500 KB)
+
+  Why: Matches desktop hero (~1.17:1) and crops acceptably on mobile
+       with object-cover centered.
+
+
+HIGH-RES / RETINA VARIANT (optional second export)
+--------------------------------------------------------------------------------
+  Dimensions:     2400 × 2000 pixels
+  Same aspect:    6 : 5
+  Use:            srcset 2x or single sharp source if only one file served
+
+
+MOBILE-OPTIMIZED VARIANT (optional — faster loads on phones)
+--------------------------------------------------------------------------------
+  Dimensions:     800 × 900 pixels
+  Aspect ratio:   8 : 9  (slightly tall — suits narrow column)
+  File size:      80–180 KB
+  Use:            <picture> or separate mobile src in slideshow implementation
+
+
+MINIMUM ACCEPTABLE (do not go smaller)
+--------------------------------------------------------------------------------
+  Width:          960 px minimum
+  Height:         800 px minimum
+  Below this:     Visible softness on large desktops and retina screens
+
+
+ASPECT RATIO — ACCEPTABLE RANGE
+--------------------------------------------------------------------------------
+  Best:           6:5, 5:4, or 4:3  (landscape to mild landscape)
+  Acceptable:     3:2, 16:10
+  Avoid:          Ultra-wide 16:9 (heavy side crop in tall mobile box)
+  Avoid:          Very tall portrait 2:3 unless subject is centered vertically
+
+  Safe zone: Keep important content in center 70% width × 70% height.
+
+
+NUMBER OF SLIDES
+--------------------------------------------------------------------------------
+  Recommended:    4–6 slides
+  Duration:       5–7 seconds per slide + crossfade 400–600ms
+  Autoplay:       Yes, with pause on hover/focus; manual dots/arrows
+
+
+FILE NAMING (suggested)
+--------------------------------------------------------------------------------
+  assets/slideshow/slide-01-community.jpg
+  assets/slideshow/slide-02-projects.jpg
+  assets/slideshow/slide-03-vision.jpg
+  assets/slideshow/slide-04-ahanta-west.jpg
+  assets/slideshow/slide-05-membership.jpg
+
+  Alt text: Describe scene + “Mavis Kuukua Bissue” or “Ahanta West” where relevant.
+
+
+PHOTOGRAPHY TIPS FOR THIS LAYOUT
+--------------------------------------------------------------------------------
+  • Shoot/export slightly wider than tall; subject centered.
+  • Leave ~10% margin on all sides for rounded-corner crop.
+  • Consistent color grading across slides (warm, natural light fits brand).
+  • Mix: 2 leadership/community, 2 project/event, 1 constituency/landscape, 1 CTA.
+
+
+TECHNICAL NOTES FOR IMPLEMENTATION (next step)
+--------------------------------------------------------------------------------
+  • Slideshow replaces single <img> inside the inner rounded div (index.php).
+  • Preserve existing heights: min(58vh,440px) / min(62vh,480px).
+  • Use same border-radius 1.5rem on each slide.
+  • Prefer lazy-load slides 2+; preload slide 1 only.
+  • Respect prefers-reduced-motion: show first slide only, no autoplay.
+
+
+================================================================================
+5. QUICK REFERENCE — COPY-PASTE PALETTE
+================================================================================
+
+  #087F5B   Primary green (buttons, brand)
+  #065F46   Primary dark (hover, secondary text)
+  #047857   emerald-700 (labels, icons)
+  #064E3B   emerald-900 (nav active)
+  #FFFFFF   Page background
+  #F8FAFC   Soft section background
+  #E5E7EB   Borders
+  #334155   Body text
+  #020617   Headings
+  #475569   Secondary text
+  #0F172A   Logo / dark accent
+  #34D399   Favicon accent
+
+================================================================================
+END OF AUDIT
+================================================================================

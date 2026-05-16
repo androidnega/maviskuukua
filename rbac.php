@@ -93,6 +93,18 @@ function require_news_management(): void {
     }
 }
 
+/** Super admin and coordinators may edit public projects and homepage slideshow. */
+function can_manage_site_content(): bool {
+    return can_manage_news();
+}
+
+function require_site_content_management(): void {
+    if (!can_manage_site_content()) {
+        flash('admin_notice', 'You do not have access to site content management.');
+        redirect('admin.php');
+    }
+}
+
 function members_active_clause(string $alias = ''): string {
     $p = $alias !== '' ? $alias . '.' : '';
 

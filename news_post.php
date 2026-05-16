@@ -36,7 +36,7 @@ render_public_layout_start($pageTitle, 'news', $desc);
 ?>
 <main class="public-main">
   <article class="section-padding border-t border-line">
-    <div class="mx-auto max-w-3xl px-5 lg:px-8">
+    <div class="<?= h(public_page_container_class()) ?>">
       <p class="text-sm font-bold uppercase tracking-[0.18em] text-emerald-700 reveal"><?= h((string) ($post['category'] ?? 'General')) ?></p>
       <h1 class="section-title font-display mt-3 text-3xl font-bold leading-tight text-slate-950 md:text-5xl reveal"><?= h($title) ?></h1>
       <p class="mt-4 text-sm text-slate-500 reveal">

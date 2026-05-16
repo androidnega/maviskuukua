@@ -10,6 +10,19 @@ if (!function_exists('h')) {
     require_once __DIR__ . '/config.php';
 }
 
+/** Favicon + touch icon (portrait mark). */
+function site_favicon_links(): void {
+    ?>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+    <?php
+}
+
+function site_logo_header_src(): string {
+    return 'assets/logo-header.png';
+}
+
 /**
  * @return list<array{key:string,label:string,href:string}>
  */
@@ -35,14 +48,15 @@ function render_public_site_header(string $active): void {
     <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-600/25 to-transparent" aria-hidden="true"></div>
 
     <div class="mx-auto flex min-h-[var(--nav-h)] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-10">
-      <a href="index.php" class="group flex min-w-0 shrink-0 items-center gap-3.5 py-2 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-2" aria-label="Mavis Kuukua Bissue home">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-slate-900 text-white shadow-md ring-1 ring-slate-900/10 transition group-hover:bg-slate-800">
-          <i class="fa-solid fa-leaf text-[0.95rem]" aria-hidden="true"></i>
-        </span>
-        <span class="min-w-0 leading-tight">
-          <span class="font-display block text-[0.95rem] font-bold tracking-tight text-slate-900 sm:text-base">Mavis Kuukua Bissue</span>
-          <span class="mt-0.5 block text-[11px] font-medium leading-none text-slate-500 sm:text-xs">Member of Parliament · Ahanta West</span>
-        </span>
+      <a href="index.php" class="group flex min-w-0 shrink-0 items-center py-2 outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-600/40 focus-visible:ring-offset-2" aria-label="Mavis Kuukua Bissue home">
+        <img
+          src="<?= h(site_logo_header_src()) ?>"
+          alt="Mavis Kuukua Bissue — Member of Parliament, Ahanta West"
+          class="h-9 w-auto max-w-[10.5rem] object-contain object-left transition group-hover:opacity-90 sm:h-11 sm:max-w-[13rem]"
+          width="204"
+          height="52"
+          decoding="async"
+        />
       </a>
 
       <nav class="hidden flex-1 items-center justify-center gap-0.5 lg:flex" aria-label="Primary">
