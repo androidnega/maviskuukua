@@ -54,6 +54,18 @@ function render_public_layout_start(string $title, string $active, ?string $meta
     }
     $desc = $metaDescription ?? 'Official website of Mavis Kuukua Bissue: leadership, service, community development, and progress.';
     public_render_layout_document_start($title, $desc, $active);
+    public_render_staff_preview_banner($pageKey);
+}
+
+function public_render_staff_preview_banner(string $pageKey): void {
+    if (!public_staff_previewing_page() || !public_page_is_under_update(db(), $pageKey)) {
+        return;
+    }
+    ?>
+  <div class="bg-amber-50 border-b border-amber-200 text-amber-950 text-sm text-center py-2.5 px-4" role="status">
+    <strong>Staff preview</strong> — this page is under update for visitors. Remove <code class="text-xs bg-amber-100 px-1">?preview=1</code> to see what the public sees.
+  </div>
+    <?php
 }
 
 function public_render_layout_document_start(string $title, string $desc, string $active): void {

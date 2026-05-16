@@ -39,7 +39,7 @@ render_layout_start('Public pages', 'public_pages_admin');
 ?>
 <div class="w-full max-w-4xl">
   <h1 class="text-2xl font-black text-slate-900">Public page status</h1>
-  <p class="text-sm text-slate-500 mt-1">Mark a page as under update to show visitors a maintenance message. Logged-in staff can still view the full page.</p>
+  <p class="text-sm text-slate-500 mt-1">Visitors and logged-in staff see the maintenance message while a page is under update. Use <strong>Preview live</strong> to view the real page (adds <code class="text-xs bg-slate-100 px-1">?preview=1</code>). Test in a private window to confirm what the public sees.</p>
 
   <?php if ($notice): ?>
     <div class="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-medium"><?= h($notice) ?></div>
@@ -64,7 +64,12 @@ render_layout_start('Public pages', 'public_pages_admin');
             <?php else: ?>
               <span class="inline-flex px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold">Live</span>
             <?php endif; ?>
-            <a href="<?= h($href) ?>" target="_blank" rel="noopener" class="text-sm font-semibold text-emerald-700 hover:underline">View</a>
+            <?php if ($under): ?>
+              <a href="<?= h($href) ?>" target="_blank" rel="noopener" class="text-sm font-semibold text-slate-600 hover:underline">As visitor</a>
+              <a href="<?= h(public_page_staff_preview_href($pdo, $key, $href)) ?>" target="_blank" rel="noopener" class="text-sm font-semibold text-emerald-700 hover:underline">Preview live</a>
+            <?php else: ?>
+              <a href="<?= h($href) ?>" target="_blank" rel="noopener" class="text-sm font-semibold text-emerald-700 hover:underline">View</a>
+            <?php endif; ?>
           </div>
         </div>
 

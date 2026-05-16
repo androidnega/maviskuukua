@@ -337,8 +337,37 @@ function public_page_notice_text(PDO $pdo, string $pageKey): string {
     return 'This page is being updated. Please check back soon.';
 }
 
+/** Coordinators/super admins may preview live content with ?preview=1 while a page is under update. */
+function public_staff_previewing_page(): bool {
+    return isset($_GET['preview'])
+        && (string) $_GET['preview'] === '1'
+        && function_exists('can_manage_site_content')
+        && can_manage_site_content();
+}
+
 function public_staff_can_bypass_page_maintenance(): bool {
-    return function_exists('is_admin') && is_admin();
+    return public_staff_previewing_page();
+}
+
+/** @return string URL for staff to preview a public page (includes sample slug where needed). */
+function public_page_staff_preview_href(PDO $pdo, string $pageKey, string $href): string {
+    if ($pageKey === 'project_detail') {
+        $stmt = $pdo->query('SELECT slug FROM projects WHERE published = 1 ORDER BY sort_order ASC, id ASC LIMIT 1');
+        $slug = $stmt ? $stmt->fetchColumn() : false;
+        if (is_string($slug) && $slug !== '') {
+            return 'project_detail.php?slug=' . rawurlencode($slug) . '&preview=1';
+        }
+    }
+    if ($pageKey === 'news_post') {
+        $stmt = $pdo->query('SELECT slug FROM news_posts WHERE published = 1 ORDER BY published_at DESC, id DESC LIMIT 1');
+        $slug = $stmt ? $stmt->fetchColumn() : false;
+        if (is_string($slug) && $slug !== '') {
+            return 'news_post.php?slug=' . rawurlencode($slug) . '&preview=1';
+        }
+    }
+    $sep = str_contains($href, '?') ? '&' : '?';
+
+    return $href . $sep . 'preview=1';
 }
 
 function public_page_blocks_visitor(PDO $pdo, string $pageKey): bool {
