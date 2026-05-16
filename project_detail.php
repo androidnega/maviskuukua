@@ -73,7 +73,7 @@ function render_project_photo_grid(array $images, string $pageTitle): void {
     <?php
 }
 
-render_public_layout_start($pageTitle, 'projects', $desc);
+render_public_layout_start($pageTitle, 'projects', $desc, 'project_detail');
 ?>
 <style>
   /* Desktop: left text scrolls; right gallery stays pinned (does not move with page scroll) */

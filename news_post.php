@@ -32,7 +32,7 @@ if ($desc === '') {
     $desc = mb_strlen($plain) > 180 ? mb_substr($plain, 0, 177) . '…' : $plain;
 }
 
-render_public_layout_start($pageTitle, 'news', $desc);
+render_public_layout_start($pageTitle, 'news', $desc, 'news_post');
 ?>
 <main class="public-main">
   <article class="section-padding border-t border-line">

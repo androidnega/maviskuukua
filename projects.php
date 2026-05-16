@@ -6,9 +6,6 @@ require_once __DIR__ . '/tracking.php';
 require_once __DIR__ . '/projects_lib.php';
 
 tracking_public_hit('/projects.php');
-if (is_admin()) {
-    redirect('admin.php');
-}
 require_once __DIR__ . '/public_layout.php';
 
 $items = projects_list();

@@ -206,7 +206,7 @@ if ($id > 0) {
 }
 
 $iconOptions = [
-    'fa-language', 'fa-hand-holding-heart', 'fa-landmark', 'fa-futbol', 'fa-hammer',
+    'fa-language', 'fa-hand-holding-heart', 'fa-landmark', 'fa-futbol', 'fa-truck-medical', 'fa-hammer',
     'fa-users', 'fa-graduation-cap', 'fa-seedling', 'fa-heart', 'fa-book',
 ];
 

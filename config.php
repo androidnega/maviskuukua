@@ -271,6 +271,7 @@ function migrate_system_extensions(PDO $pdo): void {
     require_once __DIR__ . '/site_content_lib.php';
     site_content_init_schema($pdo);
     site_content_seed_if_empty($pdo);
+    site_content_run_migrations($pdo);
 }
 
 function h(?string $value): string { return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8'); }

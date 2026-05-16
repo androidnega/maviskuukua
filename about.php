@@ -2,9 +2,6 @@
 require 'config.php';
 require_once __DIR__ . '/tracking.php';
 tracking_public_hit('/about.php');
-if (is_admin()) {
-    redirect('admin.php');
-}
 require_once __DIR__ . '/public_layout.php';
 render_public_layout_start('About Us | Mavis Kuukua Bissue', 'about', 'About Hon. Mavis Kuukua Bissue — service, integrity, unity, and development.');
 ?>

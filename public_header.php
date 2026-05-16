@@ -72,6 +72,11 @@ function render_public_site_header(string $active): void {
       </nav>
 
       <div class="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+        <?php if (function_exists('is_admin') && is_admin()): ?>
+          <a href="admin.php" class="hidden rounded-md border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 md:inline-flex">
+            Dashboard
+          </a>
+        <?php endif; ?>
         <a href="contact.php" class="hidden rounded-md border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 xl:inline-flex">
           Contact
         </a>
@@ -96,6 +101,9 @@ function render_public_site_header(string $active): void {
           <a class="<?= h($mbase . $mstate) ?>" href="<?= h($item['href']) ?>" <?= $isActive ? 'aria-current="page"' : '' ?>><?= h($item['label']) ?></a>
         <?php endforeach; ?>
         <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
+          <?php if (function_exists('is_admin') && is_admin()): ?>
+            <a href="admin.php" class="inline-flex items-center justify-center rounded-lg border border-slate-200 py-3 text-center text-sm font-semibold text-slate-800 hover:bg-slate-50 sm:col-span-2">Dashboard</a>
+          <?php endif; ?>
           <a href="contact.php" class="inline-flex items-center justify-center rounded-lg border border-slate-200 py-3 text-center text-sm font-semibold text-slate-800 hover:bg-slate-50">Contact</a>
           <a href="register.php" class="inline-flex items-center justify-center rounded-lg bg-emerald-800 py-3 text-center text-sm font-bold text-white hover:bg-emerald-900">Register</a>
         </div>

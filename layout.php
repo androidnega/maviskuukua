@@ -42,6 +42,7 @@ function render_layout_start(string $title, string $active = 'home'): void {
         $menu[] = ['key' => 'news_admin', 'label' => 'News & Posts', 'href' => 'admin_news.php', 'icon' => 'fa-newspaper'];
         $menu[] = ['key' => 'projects_admin', 'label' => 'Projects', 'href' => 'admin_projects.php', 'icon' => 'fa-hammer'];
         $menu[] = ['key' => 'slideshow_admin', 'label' => 'Home Slideshow', 'href' => 'admin_slideshow.php', 'icon' => 'fa-images'];
+        $menu[] = ['key' => 'public_pages_admin', 'label' => 'Page status', 'href' => 'admin_public_pages.php', 'icon' => 'fa-screwdriver-wrench'];
     }
     if (can_manage_staff_accounts()) {
         $menu[] = ['key' => 'manage_staff', 'label' => 'Staff Accounts', 'href' => 'manage_staff.php', 'icon' => 'fa-user-shield'];
@@ -51,6 +52,9 @@ function render_layout_start(string $title, string $active = 'home'): void {
     }
     if (is_super_admin()) {
         $menu[] = ['key' => 'settings', 'label' => 'SMS / API Settings', 'href' => 'settings.php', 'icon' => 'fa-gear'];
+    }
+    if (is_admin()) {
+        $menu[] = ['key' => 'public_site', 'label' => 'Public website', 'href' => 'index.php', 'icon' => 'fa-globe'];
     }
     $menu[] = ['key' => 'logout', 'label' => 'Logout', 'href' => 'logout.php', 'icon' => 'fa-right-from-bracket'];
 

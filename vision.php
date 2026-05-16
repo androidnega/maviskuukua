@@ -2,9 +2,6 @@
 require 'config.php';
 require_once __DIR__ . '/tracking.php';
 tracking_public_hit('/vision.php');
-if (is_admin()) {
-    redirect('admin.php');
-}
 require_once __DIR__ . '/public_layout.php';
 render_public_layout_start('Vision | Mavis Kuukua Bissue', 'vision', 'Vision for education, women, youth, healthcare, and local development.');
 ?>

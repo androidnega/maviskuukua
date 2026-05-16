@@ -276,6 +276,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 function val($key, $old) { return h(is_array($old[$key] ?? null) ? '' : ($old[$key] ?? '')); }
 function err($key, $errors) { return isset($errors[$key]) ? '<p class="text-red-600 text-sm mt-1">'.h($errors[$key]).'</p>' : ''; }
+
+require_once __DIR__ . '/site_content_lib.php';
+if (public_page_blocks_visitor(db(), 'membership')) {
+    $maintNotice = public_page_notice_text(db(), 'membership');
+    ?>
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Registration unavailable</title><?php require_once __DIR__ . '/public_header.php'; site_favicon_links(); ?><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-slate-100 text-slate-900">
+<main class="max-w-lg mx-auto px-4 py-16 text-center">
+  <p class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"><i class="fa-solid fa-screwdriver-wrench"></i> Under update</p>
+  <h1 class="mt-6 text-2xl font-black text-slate-900">Membership registration</h1>
+  <p class="mt-4 text-slate-600"><?= h($maintNotice) ?></p>
+  <a href="index.php" class="mt-8 inline-flex rounded-md bg-emerald-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Back to home</a>
+</main>
+</body></html>
+    <?php
+    exit;
+}
 ?>
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Register</title><?php require_once __DIR__ . '/public_header.php'; site_favicon_links(); ?><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-slate-100 text-slate-900">

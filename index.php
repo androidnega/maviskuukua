@@ -2,9 +2,6 @@
 require 'config.php';
 require_once __DIR__ . '/tracking.php';
 tracking_public_hit('/');
-if (is_admin()) {
-    redirect('admin.php');
-}
 require_once __DIR__ . '/public_layout.php';
 $heroSlides = public_site_hero_slides();
 $heroSrc = public_site_hero_image_src();

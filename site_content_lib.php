@@ -80,6 +80,15 @@ function site_content_init_schema(PDO $pdo): void {
         updated_at TEXT NOT NULL
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_hero_slides_published_sort ON hero_slides(published, sort_order)');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS public_pages (
+        page_key TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        href TEXT NOT NULL DEFAULT \'\',
+        under_update INTEGER NOT NULL DEFAULT 0,
+        notice TEXT NOT NULL DEFAULT \'\',
+        updated_at TEXT NOT NULL
+    )');
 }
 
 /** @return array<string, array<string, mixed>> */
@@ -185,50 +194,182 @@ HTML,
             'videos' => [],
             'sort_order' => 4,
         ],
+        'mobile-clinic' => [
+            'slug' => 'mobile-clinic',
+            'title' => 'Mobile Clinic',
+            'short_title' => 'Mobile Clinic',
+            'tagline' => 'Bringing essential healthcare closer to Ahanta communities.',
+            'icon' => 'fa-truck-medical',
+            'featured_image' => 'assets/projects/mobile-clinic/featured.jpg',
+            'excerpt' => 'A roving clinic offering screenings, maternal care, chronic disease support, and referrals across Ahanta West.',
+            'body_html' => <<<'HTML'
+<p>The Mobile Clinic brings doctors, nurses, and community health workers to towns and villages that are far from fixed facilities. Services are scheduled with local leaders so families know when care is available near home.</p>
+<h2>Services</h2>
+<ul>
+  <li>General consultations and vital-signs screening</li>
+  <li>Maternal and child health outreach</li>
+  <li>Chronic disease monitoring and medication counselling</li>
+  <li>Health education and referrals to partner hospitals</li>
+</ul>
+HTML,
+            'images' => [
+                ['path' => 'assets/kuukuacares.jpg'],
+                ['path' => 'assets/kbbmore.jpg'],
+            ],
+            'videos' => [],
+            'sort_order' => 5,
+        ],
     ];
+}
+
+/** @return array<string, array{label: string, href: string}> */
+function public_pages_registry(): array {
+    return [
+        'home' => ['label' => 'Home', 'href' => 'index.php'],
+        'about' => ['label' => 'About', 'href' => 'about.php'],
+        'vision' => ['label' => 'Vision', 'href' => 'vision.php'],
+        'projects' => ['label' => 'Projects', 'href' => 'projects.php'],
+        'project_detail' => ['label' => 'Project detail', 'href' => 'project_detail.php'],
+        'news' => ['label' => 'News', 'href' => 'news.php'],
+        'news_post' => ['label' => 'News article', 'href' => 'news_post.php'],
+        'membership' => ['label' => 'Membership registration', 'href' => 'register.php'],
+        'contact' => ['label' => 'Contact', 'href' => 'contact.php'],
+    ];
+}
+
+function site_content_insert_catalog_project(PDO $pdo, array $row): void {
+    $now = date('c');
+    $feat = (string) ($row['featured_image'] ?? '');
+    if ($feat !== '' && !is_file(BASE_DIR . '/' . $feat)) {
+        $feat = null;
+    } else {
+        $feat = $feat !== '' ? $feat : null;
+    }
+    $stmt = $pdo->prepare(
+        'INSERT INTO projects (slug, title, short_title, tagline, icon, excerpt, body_html, featured_image_path, sort_order, published, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,1,?,?)'
+    );
+    $stmt->execute([
+        $row['slug'],
+        $row['title'],
+        $row['short_title'],
+        $row['tagline'],
+        $row['icon'],
+        $row['excerpt'],
+        $row['body_html'],
+        $feat,
+        (int) ($row['sort_order'] ?? 0),
+        $now,
+        $now,
+    ]);
+    $projectId = (int) $pdo->lastInsertId();
+    $imgOrder = 0;
+    foreach ($row['images'] ?? [] as $img) {
+        $path = str_replace('\\', '/', (string) ($img['path'] ?? ''));
+        if ($path === '' || !is_file(BASE_DIR . '/' . $path)) {
+            continue;
+        }
+        $imgOrder++;
+        $pdo->prepare('INSERT INTO project_images (project_id, image_path, sort_order, created_at) VALUES (?,?,?,?)')
+            ->execute([$projectId, $path, $imgOrder, $now]);
+    }
+}
+
+function site_content_seed_missing_projects(PDO $pdo): void {
+    foreach (site_content_projects_seed_catalog() as $row) {
+        $slug = (string) ($row['slug'] ?? '');
+        if ($slug === '') {
+            continue;
+        }
+        $stmt = $pdo->prepare('SELECT id FROM projects WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        if (!$stmt->fetch()) {
+            site_content_insert_catalog_project($pdo, $row);
+        }
+    }
+}
+
+function site_content_seed_public_pages(PDO $pdo): void {
+    $now = date('c');
+    $stmt = $pdo->prepare(
+        'INSERT OR IGNORE INTO public_pages (page_key, label, href, under_update, notice, updated_at) VALUES (?,?,?,0,?,?)'
+    );
+    foreach (public_pages_registry() as $key => $meta) {
+        $stmt->execute([
+            $key,
+            $meta['label'],
+            $meta['href'],
+            'This page is being updated. Please check back soon.',
+            $now,
+        ]);
+    }
+}
+
+/** @return list<array<string, mixed>> */
+function public_pages_list_all(PDO $pdo): array {
+    site_content_seed_public_pages($pdo);
+
+    return $pdo->query('SELECT * FROM public_pages ORDER BY label ASC')->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function public_page_row(PDO $pdo, string $pageKey): ?array {
+    site_content_seed_public_pages($pdo);
+    $stmt = $pdo->prepare('SELECT * FROM public_pages WHERE page_key = ?');
+    $stmt->execute([$pageKey]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ?: null;
+}
+
+function public_page_is_under_update(PDO $pdo, string $pageKey): bool {
+    $row = public_page_row($pdo, $pageKey);
+
+    return $row !== null && !empty($row['under_update']);
+}
+
+function public_page_notice_text(PDO $pdo, string $pageKey): string {
+    $row = public_page_row($pdo, $pageKey);
+    $notice = trim((string) ($row['notice'] ?? ''));
+    if ($notice !== '') {
+        return $notice;
+    }
+
+    return 'This page is being updated. Please check back soon.';
+}
+
+function public_staff_can_bypass_page_maintenance(): bool {
+    return function_exists('is_admin') && is_admin();
+}
+
+function public_page_blocks_visitor(PDO $pdo, string $pageKey): bool {
+    if (public_staff_can_bypass_page_maintenance()) {
+        return false;
+    }
+
+    return public_page_is_under_update($pdo, $pageKey);
+}
+
+function public_page_set_under_update(PDO $pdo, string $pageKey, bool $underUpdate, ?string $notice = null): bool {
+    if (!isset(public_pages_registry()[$pageKey])) {
+        return false;
+    }
+    $now = date('c');
+    if ($notice !== null) {
+        $pdo->prepare('UPDATE public_pages SET under_update = ?, notice = ?, updated_at = ? WHERE page_key = ?')
+            ->execute([$underUpdate ? 1 : 0, trim($notice), $now, $pageKey]);
+    } else {
+        $pdo->prepare('UPDATE public_pages SET under_update = ?, updated_at = ? WHERE page_key = ?')
+            ->execute([$underUpdate ? 1 : 0, $now, $pageKey]);
+    }
+
+    return true;
 }
 
 function site_content_seed_if_empty(PDO $pdo): void {
     $count = (int) $pdo->query('SELECT COUNT(*) FROM projects')->fetchColumn();
     if ($count === 0) {
-        $now = date('c');
-        $order = 0;
         foreach (site_content_projects_seed_catalog() as $row) {
-            $order++;
-            $feat = (string) ($row['featured_image'] ?? '');
-            if ($feat !== '' && !is_file(BASE_DIR . '/' . $feat)) {
-                $feat = null;
-            } else {
-                $feat = $feat !== '' ? $feat : null;
-            }
-            $stmt = $pdo->prepare(
-                'INSERT INTO projects (slug, title, short_title, tagline, icon, excerpt, body_html, featured_image_path, sort_order, published, created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,1,?,?)'
-            );
-            $stmt->execute([
-                $row['slug'],
-                $row['title'],
-                $row['short_title'],
-                $row['tagline'],
-                $row['icon'],
-                $row['excerpt'],
-                $row['body_html'],
-                $feat,
-                (int) ($row['sort_order'] ?? $order),
-                $now,
-                $now,
-            ]);
-            $projectId = (int) $pdo->lastInsertId();
-            $imgOrder = 0;
-            foreach ($row['images'] ?? [] as $img) {
-                $path = str_replace('\\', '/', (string) ($img['path'] ?? ''));
-                if ($path === '' || !is_file(BASE_DIR . '/' . $path)) {
-                    continue;
-                }
-                $imgOrder++;
-                $pdo->prepare('INSERT INTO project_images (project_id, image_path, sort_order, created_at) VALUES (?,?,?,?)')
-                    ->execute([$projectId, $path, $imgOrder, $now]);
-            }
+            site_content_insert_catalog_project($pdo, $row);
         }
     }
 
@@ -253,6 +394,13 @@ function site_content_seed_if_empty(PDO $pdo): void {
             )->execute([$path, $alt, $n, $now, $now]);
         }
     }
+
+    site_content_seed_public_pages($pdo);
+}
+
+function site_content_run_migrations(PDO $pdo): void {
+    site_content_seed_missing_projects($pdo);
+    site_content_seed_public_pages($pdo);
 }
 
 function site_content_public_path(string $rel): string {

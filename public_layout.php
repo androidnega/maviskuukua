@@ -42,10 +42,21 @@ function public_page_container_class(): string {
 }
 
 /**
- * @param string $active One of: home, about, vision, projects, news, contact (not membership)
+ * @param string $active Nav highlight key
+ * @param string|null $pageKey Public page key for maintenance (defaults to $active)
  */
-function render_public_layout_start(string $title, string $active, ?string $metaDescription = null): void {
+function render_public_layout_start(string $title, string $active, ?string $metaDescription = null, ?string $pageKey = null): void {
+    $pageKey = $pageKey ?? $active;
+    require_once __DIR__ . '/site_content_lib.php';
+    if (public_page_blocks_visitor(db(), $pageKey)) {
+        render_public_maintenance_page($title, $active, $pageKey, $metaDescription);
+        exit;
+    }
     $desc = $metaDescription ?? 'Official website of Mavis Kuukua Bissue: leadership, service, community development, and progress.';
+    public_render_layout_document_start($title, $desc, $active);
+}
+
+function public_render_layout_document_start(string $title, string $desc, string $active): void {
     ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -278,6 +289,33 @@ function render_public_layout_start(string $title, string $active, ?string $meta
 
   <?php render_public_site_header($active); ?>
 <?php
+}
+
+function render_public_maintenance_page(string $title, string $active, string $pageKey, ?string $metaDescription = null): void {
+    $desc = $metaDescription ?? 'Page temporarily unavailable.';
+    $registry = public_pages_registry();
+    $label = $registry[$pageKey]['label'] ?? 'This page';
+    $notice = public_page_notice_text(db(), $pageKey);
+    public_render_layout_document_start($title, $desc, $active);
+    ?>
+  <main class="public-main">
+    <section class="section-padding border-t border-line min-h-[50vh] flex items-center">
+      <div class="<?= h(public_page_container_class()) ?> max-w-2xl mx-auto text-center reveal">
+        <p class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">
+          <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+          Under update
+        </p>
+        <h1 class="mt-6 font-display text-3xl font-bold text-slate-950 md:text-4xl"><?= h($label) ?></h1>
+        <p class="mt-4 text-lg text-slate-600 leading-relaxed"><?= h($notice) ?></p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a href="index.php" class="inline-flex items-center justify-center rounded-md bg-emerald-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Back to home</a>
+          <a href="contact.php" class="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">Contact us</a>
+        </div>
+      </div>
+    </section>
+  </main>
+    <?php
+    render_public_layout_end();
 }
 
 function render_public_layout_end(): void {
